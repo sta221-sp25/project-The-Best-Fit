@@ -1,6 +1,6 @@
 ---
 title: "Research Topics"
-author: "Team name - Team member 1, Team member 2, Team member 3, Team member 4"
+author: "The BEST Fit - Philip, Olivia, Leo, Allison"
 format: pdf
 execute: 
   warning: false
@@ -10,10 +10,64 @@ editor: visual
 
 ## Research Topic 1
 
+**Anxiety Attacks**
+
+1.  The study aims to investigate the different factors that contribute to anxiety attacks. These symptoms individuals experience, and how these symptoms correlate with severity. We can analyze patterns in anxiety triggers, physiological responses, and coping mechanisms, this research can provide insights into mental health tends and potential strategies to address anxiety. 
+
+2.  Anxiety disorders are among the most common mental health conditions, yet there is still a need for a deeper understanding of the factors that can contribute to severe anxiety attacks. With increased mental health awareness, identifying key factors that can cause anxiety attacks can aid prevention and treatment efforts. This research could help mental health support services and inform clinical approaches to anxiety management.  
+
+3.  The potential audiences that might be most interested in this research include workers in the healthcare industry, individuals experiencing anxiety attacks, researchers studying mental health trends, and policy makers working on mental health initiatives. 
+
+4.  Possible Research Questions:
+
+    1.  What are the most common factors that contribute to the onset of an anxiety attack? 
+
+    2.  How do different physical symptoms correlate with anxiety severity? 
+
+    3.  Which factors should doctors and nurses focus on first to help best treat anxiety disorders?
+
+5.  The type of data that might be used to answer this question include the factors that might correlate with the frequency of anxiety attacks including demographics such as age and occupation, lifestyle habits such as frequency of exercise or diet, health indicators such as heart rate and breathing rate, psychological factors such as stress levels or family history, and physiological responses. We have selected a dataset that would help us answer these questions. We would either use this dataset or something similar with similar variables. <https://www.kaggle.com/datasets/ashaychoudhary/anxiety-attack-factors-symptoms-and-severity>
+
 \pagebreak
 
 ## Research Topic 2
 
+**Hospital Demographics**
+
+1.  Hospitals collect a lot of demographic data that might give interesting insights into their operations. They can also struggle with capacity and treatment.
+
+2.  A lot of members of our group are interested in statistics in healthcare, and we think that it would be insightful to be able to estimate the length of a hospital stay. 
+
+3.  If we can predict the length of a hospital stay from this data, it would benefit hospital logistics and improve planning.
+
+4.  Possible Research Questions: 
+
+    1.  What is the relationship between health and demographic factors and length of hospital stay? 
+
+    2.  Which factors are the best predictor of mortality?
+
+One of our members has access to a clinical MIMICS dataset that would be great for this, which is identified right here: <https://physionet.org/content/mimiciii/1.4/> . Its’ data includes vital signs, medications, laboratory measurements, observations and notes charted by care providers, fluid balance, procedure codes, diagnostic codes, imaging reports, hospital length of stay, survival data, and more.
+
 \pagebreak
 
 ## Research Topic 3
+
+**Online News Popularity**
+
+1.  This dataset is based off of articles published by “Mashable” in a period of two years, which tracks how “popular” an article is based off of how many shares it had. Mashable Inc. is a digital media website founded in 2005 and as of November 2015, it has over 6,000,000 Twitter followers and over 3,200,000 fans on Facebook. By focusing on one media website, we hope to keep other variables more constant. 
+
+2.  Our motivation for investigating this topic is that we’re interested in seeing if social media actually perpetuates negative conflict. 
+
+3.  Potential audiences would be media companies as this exploration would give an insight as to what draws in a larger number of readers to increase traction. 
+
+4.  Potential Research Questions: 
+
+    1.  How do factors like “Number of words in the title”, “Number of images”, “Rate of Negative Words”, etc.  drive “virality” of an article on social media?
+
+    2.  What is the relationship between how polarized an article is and its predicted virality on social media? 
+
+5.  Considering we’ve already identified a possible dataset, either using the one we found or similar data sets that track predictors like number of words in the title, images, polarity, etc. for a given media outlet. 
+
+    Sample Dataset Here: <https://www.kaggle.com/datasets/deepakshende/onlinenewspopularity>
+
+\
