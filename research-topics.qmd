@@ -1,0 +1,19 @@
+---
+title: "Research Topics"
+author: "Team name - Team member 1, Team member 2, Team member 3, Team member 4"
+format: pdf
+execute: 
+  warning: false
+  message: false
+editor: visual
+---
+
+## Research Topic 1
+
+\pagebreak
+
+## Research Topic 2
+
+\pagebreak
+
+## Research Topic 3
