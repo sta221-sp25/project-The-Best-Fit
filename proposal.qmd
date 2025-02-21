@@ -1,6 +1,6 @@
 ---
 title: "Project Proposal"
-author: "Team name - Team member 1, Team member 2, Team member 3, Team member 4"
+author: "The BEST Fit - Olivia Encarcion, Leo Yang, Philip Lin, Allison Yang"
 format: pdf
 execute: 
   warning: false
