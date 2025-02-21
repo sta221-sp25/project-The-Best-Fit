@@ -20,9 +20,25 @@ newspopularity <- read_csv("data/OnlineNewsPopularity.csv")
 
 ## Introduction
 
+**Introduction To Subject Matter:** We are investigating the online news popularity, and the different features of articles that affect that popularity. In this case, the popularity is measured by the number of shares that the online article got. Due to the rise of the internet in recent years, many people around the world are interested in knowing what features of an article makes it trendy. Some of these key features of an article include keywords, digital media content, and earlier popularity of the news mentioned. This research topic can benefit researchers, content providers, advertisers, large companies, and politicians because online news has become so impactful, influencing the knowledge that the general public receives, and knowing what makes online news popular can help people know what types of articles reach the public. 
+
+Tsai, M.-J., & Wu, Y.-Q. (2022). Predicting online news popularity based on machine learning. Computers and Electrical Engineering, 102, 108198. https://doi.org/10.1016/j.compeleceng.2022.108198
+
+**Research Question:** How do different article attributes (ex. Polarity, Positive/Negative Sentiments, Number of Images, etc.) relate to its virality on social media?
+
+**Motivation/ Importance:** In this project, we hope to analyze what factors dictate the “virality” of news headlines on social media, to better understand how it might influence the spread of news. Gaining a more clear understanding of how news spreads online might help inform policies to avoid undue suppression or accidental spread of misinformation.
+
+**Hypothesis**: We hypothesize that more polarized, negative, and concise articles have a higher rate of virality on social media.
+
 ...
 
 ## Data description
+
+**Source**: The University of California Irvine Machine Learning Repository released this data set in 2015, known as “Online News Popularity”. It includes features about articles published by Mashable in two years (from 2013 to 2015). Mashable Inc. is a digital media website founded in 2005 and as of November 2015, it has over 6,000,000 Twitter followers and over 3,200,000 fans on Facebook. 
+
+**Data Collection**: Alongside predictors such as number of words in title, number of images, etc., the data set also tracks the number of shares in social networks to track how popular any given article is. Estimated relative performance values (such as polarity of positive/negative words, titles, etc.) were tracked by the authors using a Random Forest classifier and a rolling windows as assessment method.
+
+**General Characteristics**: The data set includes a total of 39644 observations, each of which is an individual article. Each observation includes characteristics such as Number of Words in Title/Content, Rate of Unique Words, Number of Images, Data Channel, Day Published, Rate of Positive/Negative Words, Polarity, etc.  Generally, the intention of the data set is to predict the number of shares/popularity of an article based on different factors. 
 
 ...
 
@@ -79,8 +95,26 @@ ggplot(newspopularity, aes(x = log(shares))) +
 
 ## Analysis approach
 
+This dataset features 58 predictive attributes, and one response variable– the number of shares. Some predictors of particular interest to us are: 
+
+**rate_positive_words** -  The rate of positive words among non-neutral tokens, which captures how emotionally charged the language is. 
+
+**Rate_negative_words** is likewise, but negative words
+
+**Title_sentiment_polarity** - A measure of how polarizing the title is
+
+**N_tokens_content** - A measure of how long the article’s content is 
+
+**N_tokens_title** -  A measure of how long the article title is
+
+**Data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech,  and data_channel_is_world** – Indicator variables for the article belonging to different categories or “data Channels”, we can merge into one categorical variable.
+
+**Weekday_is_monday, weekday_is_tuesday, weekday_is_wednesday, weekday_is_thursday, weekday_is_friday,weekday_is_saturday, weekday_is_sunday** – These are indicator variables for what day the article was published, which we can merge into a categorical variable of Day_published
+
+In terms of modeling techniques, a multiple linear regression would make the most sense, since we have a quantitative “shares” response var. 
+
 ...
 
 ## Data dictionary
 
-The data dictionary can be found [here](ADD%20LINK!!!) \[Update the link and remove this note!\]
+The data dictionary can be found [here](https://www.kaggle.com/datasets/deepakshende/onlinenewspopularity/data).
