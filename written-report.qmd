@@ -1,7 +1,7 @@
 ---
-title: "Your project title"
-author: "Team Name: Team member 1, Team member 2, Team member 3, Team member 4"
-date: "Update date"
+title: "Exploratory Data Analysis Written Report"
+author: "The BEST Fit - Philip, Olivia, Leo, Allison"
+date: "3/7/2025"
 format: pdf
 execute: 
   warning: false
@@ -12,7 +12,12 @@ editor: visual
 
 ```{r}
 #| label: load packages and data
+ library(tidyverse)
+ library(tidymodels)
+ library(ggplot2)
+ library(dplyr)
 
+ newspopularity <- read_csv("data/OnlineNewsPopularity.csv")
 ```
 
 Your written report goes here!
@@ -20,3 +25,52 @@ Your written report goes here!
 ::: callout-important
 Before you submit, make sure your code chunks are turned off with `echo: false` and there are no warnings or messages with `warning: false` and `message: false` in the YAML.
 :::
+
+Introduction:
+
+Exploratory Data Analysis:
+
+```{r}
+ggplot(newspopularity, aes(x = rate_positive_words)) +
+  geom_histogram(binwidth = 0.02, fill = "green", color = "black") +
+  labs(title = "Distribution of the prevalence of positive words",
+       x = "Prevalence of positive words",
+       y = "Frequency") + 
+  theme_minimal()
+```
+
+```{r}
+ggplot(newspopularity, aes(x = rate_negative_words)) +
+  geom_histogram(binwidth = 0.02, fill = "red", color = "black") +
+  labs(title = "Distribution of the prevalence of negative words",
+       x = "Prevalence of negative words",
+       y = "Frequency") + 
+  theme_minimal()
+```
+
+```{r}
+ggplot(newspopularity, aes(x = title_sentiment_polarity)) +
+  geom_histogram(binwidth = 0.02, fill = "blue", color = "black") +
+  labs(title = "Distribution of the polarities of the title",
+       x = "Degree of polarity of the title",
+       y = "Frequency") + 
+  theme_minimal()
+```
+
+```{r}
+ggplot(newspopularity, aes(x = n_tokens_content)) +
+  geom_histogram(binwidth = 100, fill = "purple", color = "black") +
+  labs(title = "Distribution of the length of article content",
+       x = "Article Length",
+       y = "Frequency") + 
+  theme_minimal()
+```
+
+```{r}
+ggplot(newspopularity, aes(x = n_tokens_title)) +
+  geom_histogram(binwidth = 1, fill = "pink", color = "black") +
+  labs(title = "Distribution of the length of title",
+       x = "Title length",
+       y = "Frequency") + 
+  theme_minimal()
+```
