@@ -131,52 +131,42 @@ ggplot(newspopularity, aes(x = log(shares))) +
 [Predictor Variable EDA]{.underline}
 
 ```{r}
-a1<- ggplot(newspopularity, aes(x = rate_positive_words)) +
+themeA <- theme_minimal() +
+  theme(axis.title.y = element_blank())  
+
+a1 <- ggplot(newspopularity, aes(x = rate_positive_words)) +
   geom_histogram(binwidth = 0.02, fill = "green", color = "black") +
-  labs(title = "Distribution of the prevalence of positive words",
-       x = "Prevalence of positive words",
-       y = "Frequency") + 
-  theme_minimal()
-```
+  labs(title = "Positive Words Rate",
+       x = "Rate of positive words") + 
+  themeA
 
-```{r}
-a2<- ggplot(newspopularity, aes(x = rate_negative_words)) +
+a2 <- ggplot(newspopularity, aes(x = rate_negative_words)) +
   geom_histogram(binwidth = 0.02, fill = "red", color = "black") +
-  labs(title = "Distribution of the prevalence of negative words",
-       x = "Prevalence of negative words",
-       y = "Frequency") + 
-  theme_minimal()
-```
+  labs(title = "Negative Words Rate",
+       x = "Rate of negative words") + 
+  themeA
 
-```{r}
-a3<- ggplot(newspopularity, aes(x = title_sentiment_polarity)) +
+a3 <- ggplot(newspopularity, aes(x = title_sentiment_polarity)) +
   geom_histogram(binwidth = 0.02, fill = "blue", color = "black") +
-  labs(title = "Distribution of the polarities of the title",
-       x = "Degree of polarity of the title",
-       y = "Frequency") + 
-  theme_minimal()
-```
+  labs(title = "Title Polarity",
+       x = "Polarity score") + 
+  themeA
 
-```{r}
-a4<-ggplot(newspopularity, aes(x = n_tokens_content)) +
+a4 <- ggplot(newspopularity, aes(x = n_tokens_content)) +
   geom_histogram(binwidth = 100, fill = "purple", color = "black") +
-  labs(title = "Distribution of the length of article content",
-       x = "Article Length",
-       y = "Frequency") + 
-  theme_minimal()
-```
+  labs(title = "Article Length",
+       x = "Number of words") + 
+  themeA
 
-```{r}
-a5<- ggplot(newspopularity, aes(x = n_tokens_title)) +
+a5 <- ggplot(newspopularity, aes(x = n_tokens_title)) +
   geom_histogram(binwidth = 1, fill = "pink", color = "black") +
-  labs(title = "Distribution of the length of title",
-       x = "Title length",
-       y = "Frequency") + 
-  theme_minimal()
-```
+  labs(title = "Title Length",
+       x = "Number of words") + 
+  themeA
 
-```{r}
-grid.arrange(a1,a2,a3,a4,a5,ncol=3)
+grid.arrange(a1, a2, a3, a4, a5, ncol = 3, 
+             left = "Frequency", 
+             top = "Distribution of Article Features")
 ```
 
 [Bi-variable EDA]{.underline}
