@@ -1,0 +1,57 @@
+---
+title: "Project Proposal"
+author: "The BEST Fit - Olivia Encarcion, Leo Yang, Philip Lin, Allison Yang"
+format: pdf
+execute: 
+  warning: false
+editor: visual
+---
+
+```{r}
+#| label: load-pkg-data
+library(tidyverse)
+library(tidymodels)
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(knitr)
+if (!requireNamespace("car", quietly = TRUE)) {
+  install.packages("car")
+}
+library(car)
+
+newsdf <- read_csv("data/OnlineNewsPopularity.csv")
+```
+
+```{r}
+p1 <- ggplot(newsdf, aes(x = rate_positive_words, y = log(shares))) +
+  geom_point( color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Log(Shares) vs Rate of Positive Words",
+       x = "Rate of Positive Words", 
+       y = "Log(Shares)") +
+  theme_minimal()
+
+p2 <- ggplot(newsdf, aes(x = rate_negative_words, y = log(shares))) +
+  geom_point(color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Log(Shares) vs Rate of Negative Words",
+       x = "Rate of Negative Words", 
+       y = "Log(Shares)")
+grid.arrange(p1, p2, ncol = 2)
+
+
+```
+
+```{r}
+model <- lm(log(shares) ~ rate_negative_words + rate_positive_words, data =newsdf ) 
+  tidy(model)|>
+  kable(digits=3)
+
+```
+
+```{r}
+vif_values <- vif(model)
+print("Variance Inflation Factors:")
+print(vif_values)
+```
