@@ -22,6 +22,8 @@ if (!requireNamespace("car", quietly = TRUE)) {
   install.packages("car")
 }
 library(car)
+
+newsdf <- read_csv("data/OnlineNewsPopularity.csv")
 ```
 
 Introduction:
@@ -55,45 +57,45 @@ Weekday_is_monday, weekday_is_tuesday, weekday_is_wednesday, weekday_is_thursday
 First, to we will convert the variables for day of the week and article topic into categorical variables for easier visualization.
 
 ```{r}
-newspopularity$day_published <- NA  # Create a new empty column
+newsdf$day_published <- NA  # Create a new empty column
 
-newspopularity$day_published <- case_when(
-  newspopularity$weekday_is_monday == 1 ~ "Monday",
-  newspopularity$weekday_is_tuesday == 1 ~ "Tuesday",
-  newspopularity$weekday_is_wednesday == 1 ~ "Wednesday",
-  newspopularity$weekday_is_thursday == 1 ~ "Thursday",
-  newspopularity$weekday_is_friday == 1 ~ "Friday",
-  newspopularity$weekday_is_saturday == 1 ~ "Saturday",
-  newspopularity$weekday_is_sunday == 1 ~ "Sunday",
+newsdf$day_published <- case_when(
+  newsdf$weekday_is_monday == 1 ~ "Monday",
+  newsdf$weekday_is_tuesday == 1 ~ "Tuesday",
+  newsdf$weekday_is_wednesday == 1 ~ "Wednesday",
+  newsdf$weekday_is_thursday == 1 ~ "Thursday",
+  newsdf$weekday_is_friday == 1 ~ "Friday",
+  newsdf$weekday_is_saturday == 1 ~ "Saturday",
+  newsdf$weekday_is_sunday == 1 ~ "Sunday",
 )
 
-newspopularity$day_published <- factor(
-  newspopularity$day_published,
+newsdf$day_published <- factor(
+  newsdf$day_published,
   levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 )
 
 
-newspopularity$data_channel <- NA
+newsdf$data_channel <- NA
 
-newspopularity$data_channel <- case_when(
-  newspopularity$data_channel_is_entertainment == 1 ~ "Entertainment",
-  newspopularity$data_channel_is_bus == 1 ~ "Business",
-  newspopularity$data_channel_is_socmed == 1 ~ "Social Media",
-  newspopularity$data_channel_is_tech == 1 ~ "Technology",
-  newspopularity$data_channel_is_world == 1 ~ "World",
+newsdf$data_channel <- case_when(
+  newsdf$data_channel_is_entertainment == 1 ~ "Entertainment",
+  newsdf$data_channel_is_bus == 1 ~ "Business",
+  newsdf$data_channel_is_socmed == 1 ~ "Social Media",
+  newsdf$data_channel_is_tech == 1 ~ "Technology",
+  newsdf$data_channel_is_world == 1 ~ "World",
 )
 
-newspopularity$data_channel <- factor(newspopularity$data_channel)
-head(newspopularity)
+newsdf$data_channel <- factor(newsdf$data_channel)
+head(newsdf)
 
 ```
 
-[Response Variable EDA]{.underline}
+[Response Variable/Univariate EDA]{.underline}
 
 ```{r}
 #| label: initial-explore
 
-ggplot(newspopularity, aes(x = shares)) +
+ggplot(newsdf, aes(x = shares)) +
   geom_histogram(binwidth = 500, fill = "blue", color = "black", alpha = 0.7) +
   scale_x_continuous(limits = c(0, 50000)) +  # Limit for better visualization
   labs(title = "Distribution of Article Shares",
@@ -105,7 +107,7 @@ ggplot(newspopularity, aes(x = shares)) +
 ```{r}
 #| label: zoom-in-response
 
-ggplot(newspopularity, aes(x = shares)) +
+ggplot(newsdf, aes(x = shares)) +
   geom_histogram(binwidth = 500, fill = "blue", color = "black", alpha = 0.7) +
   scale_x_continuous(limits = c(0, 10000)) +  # Zoom in on the first 10,000 shares
   labs(title = "Distribution of Article Shares (Zoomed In)",
@@ -120,7 +122,7 @@ Due to the right skewed nature of our data set, we decided to use a log transfor
 ```{r}
 #| label: log-transform
 
-ggplot(newspopularity, aes(x = log(shares))) +  
+ggplot(newsdf, aes(x = log(shares))) +  
   geom_histogram(binwidth = 0.2, fill = "purple", color = "black", alpha = 0.7) +
   labs(title = "Log-Transformed Distribution of Shares",
        x = "Log(Shares)",
@@ -128,37 +130,37 @@ ggplot(newspopularity, aes(x = log(shares))) +
   theme_minimal()
 ```
 
-[Predictor Variable EDA]{.underline}
+[Predictor Variable/Univariate EDA]{.underline}
 
 ```{r}
 themeA <- theme_minimal() +
   theme(axis.title.y = element_blank())  
 
-a1 <- ggplot(newspopularity, aes(x = rate_positive_words)) +
+a1 <- ggplot(newsdf, aes(x = rate_positive_words)) +
   geom_histogram(binwidth = 0.02, fill = "green", color = "black") +
   labs(title = "Positive Words Rate",
        x = "Rate of positive words") + 
   themeA
 
-a2 <- ggplot(newspopularity, aes(x = rate_negative_words)) +
+a2 <- ggplot(newsdf, aes(x = rate_negative_words)) +
   geom_histogram(binwidth = 0.02, fill = "red", color = "black") +
   labs(title = "Negative Words Rate",
        x = "Rate of negative words") + 
   themeA
 
-a3 <- ggplot(newspopularity, aes(x = title_sentiment_polarity)) +
+a3 <- ggplot(newsdf, aes(x = title_sentiment_polarity)) +
   geom_histogram(binwidth = 0.02, fill = "blue", color = "black") +
   labs(title = "Title Polarity",
        x = "Polarity score") + 
   themeA
 
-a4 <- ggplot(newspopularity, aes(x = n_tokens_content)) +
+a4 <- ggplot(newsdf, aes(x = n_tokens_content)) +
   geom_histogram(binwidth = 100, fill = "purple", color = "black") +
   labs(title = "Article Length",
        x = "Number of words") + 
   themeA
 
-a5 <- ggplot(newspopularity, aes(x = n_tokens_title)) +
+a5 <- ggplot(newsdf, aes(x = n_tokens_title)) +
   geom_histogram(binwidth = 1, fill = "pink", color = "black") +
   labs(title = "Title Length",
        x = "Number of words") + 
@@ -169,7 +171,7 @@ grid.arrange(a1, a2, a3, a4, a5, ncol = 3,
              top = "Distribution of Article Features")
 ```
 
-[Bi-variable EDA]{.underline}
+[Bi-variate EDA]{.underline}
 
 ```{r}
 p1 <- ggplot(newsdf, aes(x = rate_positive_words, y = log(shares))) +
@@ -192,7 +194,7 @@ grid.arrange(p1, p2, ncol = 2)
 ```{r}
 #| label: distribution-day 
 
-news_summary <- newspopularity |>
+news_summary <- newsdf |>
   group_by(day_published) |> 
   summarize(mean_shares = mean(shares)) 
 
@@ -226,7 +228,7 @@ This visualization and summarization suggests that the day an article is publish
 ```{r}
 #| label: data-channel-vis 
 
-news_summary_channel <- newspopularity |>
+news_summary_channel <- newsdf |>
   group_by(data_channel) |> 
   summarize(mean_shares = mean(shares)) 
 
@@ -241,7 +243,7 @@ news_summary_channel |>
     title = "Mean Number of Article Shares vs. Data Channel"
   )
 
-newspopularity |>
+newsdf |>
   filter(is.na(data_channel)) |>
   nrow()
 
