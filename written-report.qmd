@@ -301,7 +301,7 @@ newsdf |>
   )
 ```
 
-Finally, our initial EDA of title polarity found a massive frequency spike at 0 frequency, which might correspond to failed measurements or the vast majority of our articles not presenting signifigant title polarity. As such, we will discard title polarity as a predictor.
+Finally, our initial EDA of title polarity found a massive frequency spike at 0 frequency, which might correspond to failed measurements or the vast majority of our articles not presenting signifigant title polarity.
 
 ```{r}
 ggplot(newsdf, aes(x = title_sentiment_polarity)) +
@@ -311,7 +311,20 @@ ggplot(newsdf, aes(x = title_sentiment_polarity)) +
        y= "Frequency") 
 ```
 
-#Try binning into catsgorical
+To fix this issue and for ease of use, we catagorized articles into negative, neutral and positive polarity, with a threshold of 0 +- 0.05 for neutral. Most titles remain neutral, and there are more positive than negative headlines.
+
+```{r}
+newsdf$title_sentiment_category <- cut(newsdf$title_sentiment_polarity,
+                                       breaks = c(-Inf, -0.05, 0.05, Inf),
+                                       labels = c("Negative", "Neutral", "Positive"))
+ggplot(newsdf, aes(x = title_sentiment_category, fill = title_sentiment_category)) +
+  geom_bar() +
+  scale_fill_manual(values = c("Negative" = "red", "Neutral" = "gray", "Positive" = "blue")) +
+  labs(title = "Distribution of Title Sentiment Polarity",
+       x = "Sentiment Category",
+       y = "Count") +
+  theme_minimal()
+```
 
 [Bi-variate EDA]{.underline}
 
@@ -331,6 +344,58 @@ p2 <- ggplot(newsdf, aes(x = rate_negative_words, y = log(shares))) +
        x = "Rate of Negative Words", 
        y = "Log(Shares)")
 grid.arrange(p1, p2, ncol = 2)
+```
+
+By plotting the rate of positive words and the rate of negative words against the log transformed share, we can see that neither have a particularly strong relationship with how often the article is shared. The rate of positive words seems to have a weak positive relationship with shares, and the rate of negative words seems to have a weak negative relationship, but both have significant outliers ar 1 and 0.
+
+```{r}
+ggplot(newsdf, aes(x = title_sentiment_category, y = (shares), fill = title_sentiment_category)) +
+  stat_summary(fun = "mean", geom = "bar") +
+  scale_fill_manual(values = c("Negative" = "red", "Neutral" = "gray", "Positive" = "blue")) +
+  labs(title = "Average Shares by Title Polarity",
+       x = "Title Polarity Category",
+       y = "Average Shares") +
+  theme(legend.position = "none")
+```
+
+In contrast, there seems to be some relationship between title polarity and the number of shares, with positive polarity associated with greater share counts.
+
+Next,
+
+```{r}
+f1<- ggplot(newsdf, aes(x = (n_tokens_content), y = log(shares))) +
+  geom_point( color = "violet") +
+  geom_smooth(method = "lm", color = "blue") +
+  labs(title = "Log(Shares) vs Article Length",
+       x = "Article Length(Words)", 
+       y = "Log(Shares)") +
+  theme_minimal()
+
+f2<- ggplot(newsdf, aes(x = log(n_tokens_content), y = log(shares))) +
+  geom_point( color = "violet") +
+  geom_smooth(method = "lm", color = "blue") +
+  labs(title = "Log(Shares) vs Article Length",
+       x = "log(Article Length(Words))", 
+       y = "Log(Shares)") +
+  theme_minimal()
+
+grid.arrange(f1,f2,ncol=2)
+```
+
+These graphs shows a weak, positive relationship betweek article length and the log transformed number of shares. Due to the skew, we can apply the log transform to the article length. This shows a more even distribution, with no clear relationship.
+
+Similarly, there doesn't seem to be any clear relationship between title length and the number of shares in the graph below.
+
+```{r}
+ ggplot(newsdf, aes(x = (n_tokens_title), y = log(shares))) +
+  geom_point( color = "gold") +
+  geom_smooth(method = "lm", color = "blue") +
+  labs(title = "Log(Shares) vs Title Length",
+       x = "Title Length(Words)", 
+       y = "Log(Shares)") +
+  theme_minimal()
+
+
 ```
 
 ```{r}
