@@ -46,15 +46,15 @@ N_tokens_content - A measure of how long the article’s content is 
 
 N_tokens_title -  A measure of how long the article title is
 
-Data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech,  and data_channel_is_world –  Indicator variables for the article belonging to different categories or “data Channels”, we can merge into one categorical variable.
+data_channel - a catagorical variable merged from Data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech,  and data_channel_is_world dennoting the tag on the article.
 
-Weekday_is_monday, weekday_is_tuesday, weekday_is_wednesday, weekday_is_thursday, weekday_is_friday,weekday_is_saturday, weekday_is_sunday  – These are indicator variables for what day the article was published, which we can merge into a categorical variable of Day_published
+day_published- Weekday_is_monday, weekday_is_tuesday, weekday_is_wednesday, weekday_is_thursday, weekday_is_friday,weekday_is_saturday, weekday_is_sunday  – These are indicator variables for what day the article was published, which we can merge into a categorical variable of Day_published
 
 \break
 
 [Data Cleaning]{.underline}
 
-First, to we will convert the variables for day of the week and article topic into categorical variables for easier visualization.
+First we have to combine the existing weekday and data_channel indicator variables into their respective categorical variables.
 
 ```{r}
 newsdf$day_published <- NA  # Create a new empty column
@@ -86,9 +86,33 @@ newsdf$data_channel <- case_when(
 )
 
 newsdf$data_channel <- factor(newsdf$data_channel)
-head(newsdf)
 
+
+tab <- newsdf %>%
+  select(url, day_published, data_channel) %>%
+  head(5)
+kable(tab, caption = "Transformed Data")
+  
 ```
+
+```{r}
+ggplot(data =newsdf, aes(x=data_channel))+
+  geom_bar(fill = "green")+
+  labs(
+    x ="Data Channel",
+    y= "Relative Frequency", 
+    title = "Distribution of article catagories"
+  )
+```
+
+Next, we discovered that approx 8,233 articles are not tagged for a specific data channel. Due to the nature of the dataset, it's unclear if this was because the article was simply missing a tag, it was mis-tagged while being collected, or if it simply doesn't belong in any of these catagories. With the relatively large size of our dataset, we we decided to exclude entries lacking a data tag NA's from our data channel analysis altogether. These articles lacking a data channel were filtered out.
+
+```{r}
+newsdf<- newsdf |> 
+  filter(!is.na(data_channel))
+```
+
+
 
 [Response Variable/Univariate EDA]{.underline}
 
@@ -103,6 +127,20 @@ ggplot(newsdf, aes(x = shares)) +
        y = "Count") +
   theme_minimal()
 ```
+```{r}
+newsdf |>
+  summarize(
+    mean_shares = mean(shares),
+    median_shares = median(shares),
+    sd_shares = sd(shares),
+    min_shares = min(shares),
+    max_shares = max(shares),
+    q1 = quantile(shares, 0.25),
+    q3 = quantile(shares, 0.75)
+  )
+```
+
+The distribution of # of shares is highly  right skewed, a median of 1400 shares and a few highly shared articles. Notably, the mean of 2878 shares is far larger
 
 ```{r}
 #| label: zoom-in-response
@@ -117,8 +155,7 @@ ggplot(newsdf, aes(x = shares)) +
 
 ```
 
-Due to the right skewed nature of our data set, we decided to use a log transformation so that the response variable would be normally distributed.
-
+To make deal with this strong right skew, we applied a log transformation to the share variable, yielding a less skewed distribution.
 ```{r}
 #| label: log-transform
 
@@ -169,6 +206,17 @@ a5 <- ggplot(newsdf, aes(x = n_tokens_title)) +
 grid.arrange(a1, a2, a3, a4, a5, ncol = 3, 
              left = "Frequency", 
              top = "Distribution of Article Features")
+```
+Examining the rate of positive words in an article, we see 
+
+Finally, our initial EDA of title polarity found a massive frequency spike at 0 frequency, which might correspond to failed measurements or the vast majority of our articles not presenting signifigant title polarity. As such, we will discard title polarity fron our model.
+
+```{r}
+ggplot(newsdf, aes(x = title_sentiment_polarity)) +
+  geom_histogram(binwidth = 0.02, fill = "blue", color = "black") +
+  labs(title = "Title Polarity",
+       x = "Polarity score",
+       y= "Frequency") 
 ```
 
 [Bi-variate EDA]{.underline}
