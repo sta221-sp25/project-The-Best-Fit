@@ -20,15 +20,44 @@ editor: visual
  newspopularity <- read_csv("data/OnlineNewsPopularity.csv")
 ```
 
-Your written report goes here!
-
-::: callout-important
-Before you submit, make sure your code chunks are turned off with `echo: false` and there are no warnings or messages with `warning: false` and `message: false` in the YAML.
-:::
-
 Introduction:
 
 Exploratory Data Analysis:
+
+First, to we will convert the variables for day of the week and article topic into categorical variables for easier visualization.
+
+```{r}
+newspopularity$day_published <- NA  # Create a new empty column
+
+newspopularity$day_published <- case_when(
+  newspopularity$weekday_is_monday == 1 ~ "Monday",
+  newspopularity$weekday_is_tuesday == 1 ~ "Tuesday",
+  newspopularity$weekday_is_wednesday == 1 ~ "Wednesday",
+  newspopularity$weekday_is_thursday == 1 ~ "Thursday",
+  newspopularity$weekday_is_friday == 1 ~ "Friday",
+  newspopularity$weekday_is_saturday == 1 ~ "Saturday",
+  newspopularity$weekday_is_sunday == 1 ~ "Sunday",
+)
+
+newspopularity$day_published <- factor(
+  newspopularity$day_published,
+  levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+)
+
+
+newspopularity$data_channel <- NA
+
+newspopularity$data_channel <- case_when(
+  newspopularity$data_channel_is_entertainment == 1 ~ "Entertainment",
+  newspopularity$data_channel_is_bus == 1 ~ "Business",
+  newspopularity$data_channel_is_socmed == 1 ~ "Social Media",
+  newspopularity$data_channel_is_tech == 1 ~ "Technology",
+  newspopularity$data_channel_is_world == 1 ~ "World",
+)
+
+newspopularity$data_channel <- factor(newspopularity$data_channel)
+head(newspopularity)
+```
 
 ```{r}
 ggplot(newspopularity, aes(x = rate_positive_words)) +
