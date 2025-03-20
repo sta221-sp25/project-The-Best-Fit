@@ -46,9 +46,9 @@ N_tokens_content - A measure of how long the article’s content is 
 
 N_tokens_title -  A measure of how long the article title is
 
-data_channel - a catagorical variable merged from Data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech,  and data_channel_is_world dennoting the tag on the article.
+data_channel - a catagorical variable denoting article topic merged from: Data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, and data_channel_is_world.
 
-day_published- Weekday_is_monday, weekday_is_tuesday, weekday_is_wednesday, weekday_is_thursday, weekday_is_friday,weekday_is_saturday, weekday_is_sunday  – These are indicator variables for what day the article was published, which we can merge into a categorical variable of Day_published
+day_published- a catagorical variable indicating publication day merged from indicators: Weekday_is_monday, weekday_is_tuesday, weekday_is_wednesday, weekday_is_thursday, weekday_is_friday,weekday_is_saturday, weekday_is_sunday 
 
 \break
 
@@ -103,10 +103,6 @@ ggplot(data =newsdf, aes(x=data_channel))+
     y= "Relative Frequency", 
     title = "Distribution of article catagories"
   )
-
-newsdf |>
-  filter(is.na(data_channel)) |>
-  nrow()
 ```
 
 Next, we discovered that approx 8,233 articles are not tagged for a specific data channel. Due to the nature of the dataset, it's unclear if this was because the article was simply missing a tag, it was mis-tagged while being collected, or if it simply doesn't belong in any of these catagories. With the relatively large size of our dataset, we we decided to exclude entries lacking a data tag NA's from our data channel analysis altogether. These articles lacking a data channel were filtered out.
@@ -212,9 +208,100 @@ grid.arrange(a1, a2, a3, a4, a5, ncol = 3,
              top = "Distribution of Article Features")
 ```
 
-Examining the rate of positive words in an article, we see
+Examining the rate of positive words in an article, we see a left skew distribution, with modes at \~0, \~0.75 and \~1. The median positivity is approx 0.71 positvity rate, and the range is from 0 to 1.
 
-Finally, our initial EDA of title polarity found a massive frequency spike at 0 frequency, which might correspond to failed measurements or the vast majority of our articles not presenting signifigant title polarity. As such, we will discard title polarity fron our model.
+```{r}
+ggplot(newsdf, aes(x = rate_positive_words)) +
+  geom_histogram(binwidth = 0.02, fill = "green", color = "black") +
+  labs(title = "Rel. Freq of Positive Words Rate",
+       x = "Rate of positive words",
+       y= "Frequency")
+```
+
+```{r}
+newsdf |>
+  summarize(
+    mean= mean(rate_positive_words),
+    median = median(rate_positive_words),
+    std.dev = sd(rate_positive_words),
+    min = min(rate_positive_words),
+    max = max(rate_positive_words),
+  )
+```
+
+The rate of negative words shows the opposite trend, with a slight right skew. Similarly, there seems to be a second mode at 0 negativity. The median is approx 0.28 negativity rate, with an approximately equal mean.
+
+```{r}
+ggplot(newsdf, aes(x = rate_negative_words)) +
+  geom_histogram(binwidth = 0.02, fill = "red", color = "black") +
+  labs(title = "Rel Freq of Negative Words Rate",
+       x = "Rate of negative words",
+       y= "Frequency")
+```
+
+```{r}
+newsdf |>
+  summarize(
+    mean= mean(rate_negative_words),
+    median = median(rate_negative_words),
+    std.dev = sd(rate_negative_words),
+    min = min(rate_negative_words),
+    max = max(rate_negative_words),
+  )
+```
+
+```{r}
+ggplot(newsdf, aes(x = n_tokens_content)) +
+  geom_histogram(binwidth = 100, fill = "purple", color = "black") +
+  labs(title = "Rel. Freq. of Article Length",
+       x = "Number of words",
+       y= "frequency")
+
+```
+
+```{r}
+newsdf |>
+  summarize(
+    mean= mean(n_tokens_content),
+    median = median(n_tokens_content),
+    std.dev = sd(n_tokens_content),
+    min = min(n_tokens_content),
+    max = max(n_tokens_content),
+  )
+```
+
+For article length, the graph shows a strongly right skewed distribution, with a median length of 444 and a high standard deveation of 477 words. To remedy this, we might consider a log transfromation which yields a more even distribution.
+
+```{r}
+ggplot(newsdf, aes(x = log(n_tokens_content))) +
+  geom_histogram( fill = "purple", color = "black") +
+  labs(title = "Rel. Freq of Log transformed Article Length",
+       x = "log of # of words",
+       y= "frequency")
+```
+
+For the number of tokens in the title, we can see a highly symetric distribution centered at 10, with a standard deviation of 2.14.
+
+```{r}
+ggplot(newsdf, aes(x = n_tokens_title)) +
+  geom_histogram(binwidth = 1, fill = "pink", color = "black") +
+  labs(title = "Rel. Freq. of Title Length",
+       x = "Number of words",
+       y= "frequency")
+```
+
+```{r}
+newsdf |>
+  summarize(
+    mean= mean(n_tokens_title),
+    median = median(n_tokens_title),
+    std.dev = sd(n_tokens_title),
+    min = min(n_tokens_title),
+    max = max(n_tokens_title),
+  )
+```
+
+Finally, our initial EDA of title polarity found a massive frequency spike at 0 frequency, which might correspond to failed measurements or the vast majority of our articles not presenting signifigant title polarity. As such, we will discard title polarity as a predictor.
 
 ```{r}
 ggplot(newsdf, aes(x = title_sentiment_polarity)) +
@@ -223,6 +310,8 @@ ggplot(newsdf, aes(x = title_sentiment_polarity)) +
        x = "Polarity score",
        y= "Frequency") 
 ```
+
+#Try binning into catsgorical
 
 [Bi-variate EDA]{.underline}
 
