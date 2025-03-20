@@ -11,13 +11,17 @@ editor: visual
 ---
 
 ```{r}
-#| label: load packages and data
- library(tidyverse)
- library(tidymodels)
- library(ggplot2)
- library(dplyr)
-
- newspopularity <- read_csv("data/OnlineNewsPopularity.csv")
+#| label: load-pkg-data
+library(tidyverse)
+library(tidymodels)
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(knitr)
+if (!requireNamespace("car", quietly = TRUE)) {
+  install.packages("car")
+}
+library(car)
 ```
 
 Introduction:
@@ -127,7 +131,7 @@ ggplot(newspopularity, aes(x = log(shares))) +
 [Predictor Variable EDA]{.underline}
 
 ```{r}
-ggplot(newspopularity, aes(x = rate_positive_words)) +
+a1<- ggplot(newspopularity, aes(x = rate_positive_words)) +
   geom_histogram(binwidth = 0.02, fill = "green", color = "black") +
   labs(title = "Distribution of the prevalence of positive words",
        x = "Prevalence of positive words",
@@ -136,7 +140,7 @@ ggplot(newspopularity, aes(x = rate_positive_words)) +
 ```
 
 ```{r}
-ggplot(newspopularity, aes(x = rate_negative_words)) +
+a2<- ggplot(newspopularity, aes(x = rate_negative_words)) +
   geom_histogram(binwidth = 0.02, fill = "red", color = "black") +
   labs(title = "Distribution of the prevalence of negative words",
        x = "Prevalence of negative words",
@@ -145,7 +149,7 @@ ggplot(newspopularity, aes(x = rate_negative_words)) +
 ```
 
 ```{r}
-ggplot(newspopularity, aes(x = title_sentiment_polarity)) +
+a3<- ggplot(newspopularity, aes(x = title_sentiment_polarity)) +
   geom_histogram(binwidth = 0.02, fill = "blue", color = "black") +
   labs(title = "Distribution of the polarities of the title",
        x = "Degree of polarity of the title",
@@ -154,7 +158,7 @@ ggplot(newspopularity, aes(x = title_sentiment_polarity)) +
 ```
 
 ```{r}
-ggplot(newspopularity, aes(x = n_tokens_content)) +
+a4<-ggplot(newspopularity, aes(x = n_tokens_content)) +
   geom_histogram(binwidth = 100, fill = "purple", color = "black") +
   labs(title = "Distribution of the length of article content",
        x = "Article Length",
@@ -163,7 +167,7 @@ ggplot(newspopularity, aes(x = n_tokens_content)) +
 ```
 
 ```{r}
-ggplot(newspopularity, aes(x = n_tokens_title)) +
+a5<- ggplot(newspopularity, aes(x = n_tokens_title)) +
   geom_histogram(binwidth = 1, fill = "pink", color = "black") +
   labs(title = "Distribution of the length of title",
        x = "Title length",
@@ -171,7 +175,29 @@ ggplot(newspopularity, aes(x = n_tokens_title)) +
   theme_minimal()
 ```
 
+```{r}
+grid.arrange(a1,a2,a3,a4,a5,ncol=3)
+```
+
 [Bi-variable EDA]{.underline}
+
+```{r}
+p1 <- ggplot(newsdf, aes(x = rate_positive_words, y = log(shares))) +
+  geom_point( color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Log(Shares) vs Rate of Positive Words",
+       x = "Rate of Positive Words", 
+       y = "Log(Shares)") +
+  theme_minimal()
+
+p2 <- ggplot(newsdf, aes(x = rate_negative_words, y = log(shares))) +
+  geom_point(color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Log(Shares) vs Rate of Negative Words",
+       x = "Rate of Negative Words", 
+       y = "Log(Shares)")
+grid.arrange(p1, p2, ncol = 2)
+```
 
 ```{r}
 #| label: distribution-day 
@@ -190,6 +216,19 @@ news_summary|>
     title = "Mean Number of Article Shares vs. Day Published"
   )
 
+```
+
+```{r}
+model <- lm(log(shares) ~ rate_negative_words + rate_positive_words, data =newsdf ) 
+  tidy(model)|>
+  kable(digits=3)
+
+```
+
+```{r}
+vif_values <- vif(model)
+print("Variance Inflation Factors:")
+print(vif_values)
 ```
 
 This visualization and summarization suggests that the day an article is published does not have a significant impact on the virality of an article, as the mean number of article shares do not differ much between days.
