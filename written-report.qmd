@@ -103,6 +103,10 @@ ggplot(data =newsdf, aes(x=data_channel))+
     y= "Relative Frequency", 
     title = "Distribution of article catagories"
   )
+
+newsdf |>
+  filter(is.na(data_channel)) |>
+  nrow()
 ```
 
 Next, we discovered that approx 8,233 articles are not tagged for a specific data channel. Due to the nature of the dataset, it's unclear if this was because the article was simply missing a tag, it was mis-tagged while being collected, or if it simply doesn't belong in any of these catagories. With the relatively large size of our dataset, we we decided to exclude entries lacking a data tag NA's from our data channel analysis altogether. These articles lacking a data channel were filtered out.
@@ -111,8 +115,6 @@ Next, we discovered that approx 8,233 articles are not tagged for a specific dat
 newsdf<- newsdf |> 
   filter(!is.na(data_channel))
 ```
-
-
 
 [Response Variable/Univariate EDA]{.underline}
 
@@ -127,6 +129,7 @@ ggplot(newsdf, aes(x = shares)) +
        y = "Count") +
   theme_minimal()
 ```
+
 ```{r}
 newsdf |>
   summarize(
@@ -140,7 +143,7 @@ newsdf |>
   )
 ```
 
-The distribution of # of shares is highly  right skewed, a median of 1400 shares and a few highly shared articles. Notably, the mean of 2878 shares is far larger
+The distribution of \# of shares is highly right skewed, a median of 1400 shares and a few highly shared articles. Notably, the mean of 2878 shares is far larger
 
 ```{r}
 #| label: zoom-in-response
@@ -156,6 +159,7 @@ ggplot(newsdf, aes(x = shares)) +
 ```
 
 To make deal with this strong right skew, we applied a log transformation to the share variable, yielding a less skewed distribution.
+
 ```{r}
 #| label: log-transform
 
@@ -207,7 +211,8 @@ grid.arrange(a1, a2, a3, a4, a5, ncol = 3,
              left = "Frequency", 
              top = "Distribution of Article Features")
 ```
-Examining the rate of positive words in an article, we see 
+
+Examining the rate of positive words in an article, we see
 
 Finally, our initial EDA of title polarity found a massive frequency spike at 0 frequency, which might correspond to failed measurements or the vast majority of our articles not presenting signifigant title polarity. As such, we will discard title polarity fron our model.
 
@@ -271,7 +276,7 @@ print("Variance Inflation Factors:")
 print(vif_values)
 ```
 
-This visualization and summarization suggests that the day an article is published does not have a significant impact on the virality of an article, as the mean number of article shares do not differ much between days.
+This visualization and summarization suggests that the day an article is published does not have a significant impact on the virality of an article, as the mean number of article shares do not differ much between days. Therefore, this predictor may not be as important as others when it comes to predicting the virality of an article.
 
 ```{r}
 #| label: data-channel-vis 
@@ -290,13 +295,6 @@ news_summary_channel |>
     y = "Mean Number of Article Shares",
     title = "Mean Number of Article Shares vs. Data Channel"
   )
-
-newsdf |>
-  filter(is.na(data_channel)) |>
-  nrow()
-
 ```
 
-We found that 8,233 articles are not tagged for a specific data channel, however, because we don't know if the cause of this missing tag (ex. the data being mistagged, etc.) we've decided to exclude the NA's from our data channel analysis altogether.
-
-From our analysis, it appears that generally articles that are in the social media data channel perform the best in terms of average number of shares (\~3600), while articles that are in the World data channel perform the worst (\~2250). Business, Entertainment, and Technology articles all seem to receive a mean of about 3000 shares.
+From our visualizations, it appears that articles that are in the social media data channel perform the best in terms of average number of shares (\~3600), while articles that are in the World data channel perform the worst (\~2250). Business, Entertainment, and Technology articles all seem to receive a mean of about 3000 shares. However, from our earlier univariate analysis, we saw that the Social Media Data Channel has the lowest number of articles, and thus there is a possibility that any outliers for this data channel category would have a larger impact in skewing the mean.
