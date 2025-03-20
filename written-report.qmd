@@ -22,7 +22,31 @@ editor: visual
 
 Introduction:
 
-Exploratory Data Analysis:
+**Exploratory Data Analysis:**
+
+**Data Set Description**: 
+
+Our project utilizes the University of California Irvine Machine Learning Repository’s  “Online News Popularity” data set. It includes share counts and descriptive characteristics for articles published by Mashable over two years (from 2013 to 2015). Mashable Inc. is a digital media website founded in 2005 and as of November 2015, it has over 6,000,000 Twitter followers and over 3,200,000 fans on Facebook. The data set in total, has 39644 observations, each representing an individual article. Observations include characteristics such as: Number of Words in Title/Content, Rate of Unique Words, Number of Images, Data Channel, Day Published, Rate of Positive/Negative Words, Polarity, etc.  Our intention is to use the data set to predict the number of shares/virality of an article based on different variables. 
+
+**Key Variables**: 
+
+rate_positive_words -  rate of positive words among non-neutral tokens, which captures how emotionally charged the language is. 
+
+Rate_negative_words - rate of negative words among non-neutral tokens, which captures how emotionally charged the language is. 
+
+title_sentiment_polarity - A measure of how polarizing the title is
+
+N_tokens_content - A measure of how long the article’s content is 
+
+N_tokens_title -  A measure of how long the article title is
+
+Data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech,  and data_channel_is_world –  Indicator variables for the article belonging to different categories or “data Channels”, we can merge into one categorical variable.
+
+Weekday_is_monday, weekday_is_tuesday, weekday_is_wednesday, weekday_is_thursday, weekday_is_friday,weekday_is_saturday, weekday_is_sunday  – These are indicator variables for what day the article was published, which we can merge into a categorical variable of Day_published
+
+\break
+
+[Data Cleaning]{.underline}
 
 First, to we will convert the variables for day of the week and article topic into categorical variables for easier visualization.
 
@@ -57,7 +81,50 @@ newspopularity$data_channel <- case_when(
 
 newspopularity$data_channel <- factor(newspopularity$data_channel)
 head(newspopularity)
+
 ```
+
+[Response Variable EDA]{.underline}
+
+```{r}
+#| label: initial-explore
+
+ggplot(newspopularity, aes(x = shares)) +
+  geom_histogram(binwidth = 500, fill = "blue", color = "black", alpha = 0.7) +
+  scale_x_continuous(limits = c(0, 50000)) +  # Limit for better visualization
+  labs(title = "Distribution of Article Shares",
+       x = "Number of Shares",
+       y = "Count") +
+  theme_minimal()
+```
+
+```{r}
+#| label: zoom-in-response
+
+ggplot(newspopularity, aes(x = shares)) +
+  geom_histogram(binwidth = 500, fill = "blue", color = "black", alpha = 0.7) +
+  scale_x_continuous(limits = c(0, 10000)) +  # Zoom in on the first 10,000 shares
+  labs(title = "Distribution of Article Shares (Zoomed In)",
+       x = "Number of Shares",
+       y = "Count") +
+  theme_minimal()
+
+```
+
+Due to the right skewed nature of our data set, we decided to use a log transformation so that the response variable would be normally distributed.
+
+```{r}
+#| label: log-transform
+
+ggplot(newspopularity, aes(x = log(shares))) +  
+  geom_histogram(binwidth = 0.2, fill = "purple", color = "black", alpha = 0.7) +
+  labs(title = "Log-Transformed Distribution of Shares",
+       x = "Log(Shares)",
+       y = "Count") +
+  theme_minimal()
+```
+
+[Predictor Variable EDA]{.underline}
 
 ```{r}
 ggplot(newspopularity, aes(x = rate_positive_words)) +
@@ -103,3 +170,54 @@ ggplot(newspopularity, aes(x = n_tokens_title)) +
        y = "Frequency") + 
   theme_minimal()
 ```
+
+[Bi-variable EDA]{.underline}
+
+```{r}
+#| label: distribution-day 
+
+news_summary <- newspopularity |>
+  group_by(day_published) |> 
+  summarize(mean_shares = mean(shares)) 
+
+head(news_summary)
+news_summary|>
+  ggplot(aes(x = day_published, y = mean_shares)) +
+  geom_bar(stat = "identity", fill = "skyblue") + 
+  labs(
+    x = "Day Published", 
+    y = "Mean Number of Article Shares",
+    title = "Mean Number of Article Shares vs. Day Published"
+  )
+
+```
+
+This visualization and summarization suggests that the day an article is published does not have a significant impact on the virality of an article, as the mean number of article shares do not differ much between days.
+
+```{r}
+#| label: data-channel-vis 
+
+news_summary_channel <- newspopularity |>
+  group_by(data_channel) |> 
+  summarize(mean_shares = mean(shares)) 
+
+head(news_summary_channel)
+news_summary_channel |>
+  drop_na(data_channel) |>
+  ggplot(aes(x = data_channel, y = mean_shares)) +
+  geom_bar(stat = "identity", fill = "skyblue") + 
+  labs(
+    x = "Data Channel", 
+    y = "Mean Number of Article Shares",
+    title = "Mean Number of Article Shares vs. Data Channel"
+  )
+
+newspopularity |>
+  filter(is.na(data_channel)) |>
+  nrow()
+
+```
+
+We found that 8,233 articles are not tagged for a specific data channel, however, because we don't know if the cause of this missing tag (ex. the data being mistagged, etc.) we've decided to exclude the NA's from our data channel analysis altogether.
+
+From our analysis, it appears that generally articles that are in the social media data channel perform the best in terms of average number of shares (\~3600), while articles that are in the World data channel perform the worst (\~2250). Business, Entertainment, and Technology articles all seem to receive a mean of about 3000 shares.
