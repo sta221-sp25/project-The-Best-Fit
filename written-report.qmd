@@ -452,3 +452,12 @@ news_summary_channel |>
 ```
 
 From our visualizations, it appears that articles that are in the social media data channel perform the best in terms of average number of shares (\~3600), while articles that are in the World data channel perform the worst (\~2250). Business, Entertainment, and Technology articles all seem to receive a mean of about 3000 shares. However, from our earlier univariate analysis, we saw that the Social Media Data Channel has the lowest number of articles, and thus there is a possibility that any outliers for this data channel category would have a larger impact in skewing the mean.
+
+```{r}
+#| label: interact-channel
+
+newsdf |>
+  ggplot(aes(x = title_sentiment_category, y = mean(shares))) + 
+  geom_bar(stat = "identity") + 
+  facet_wrap(~ data_channel)
+```
