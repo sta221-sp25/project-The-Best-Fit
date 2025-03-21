@@ -504,6 +504,17 @@ news_summary |>
 From this visualization, it's suggested that the title sentiment may have different impacts on the mean number of shares depending on the type of data channel, thus suggesting that there may be a statistically significant interaction effect between the title sentiment and the data channel type. For instance, while for Social Media and Entertainment, it appears that articles with a Negative sentiment have the greatest number of mean shares, for World and Technology articles, Positive sentiment articles had the greatest mean shares, and for Business, Neutral sentiment articles had the greatest number.
 
 ```{r}
+#| label: news-fit
+
+news_fit <- lm(log(shares) ~ data_channel + title_sentiment_category + data_channel * title_sentiment_category, data = newsdf)
+
+tidy(news_fit) |>
+  kable(digits = 3)
+```
+
+However, when looking at the actual fitted model, all the interaction terms between the data channel and the sentiment category have large p-values (greater than 0.05) suggesting that none of the interaction terms are actually statistically significant between data channel and title sentiment category. In the future we could consider looking at the mean of the shares rather than the log, as it appears as though there may be interaction effects for the mean but not the log of the shares.
+
+```{r}
 #| label: more-interaction
 
 title_fit_mod <- lm(log(shares) ~ n_tokens_title + data_channel * n_tokens_title + data_channel, data = newsdf) 

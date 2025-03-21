@@ -77,3 +77,10 @@ newsdf |>
   geom_point() +
   geom_smooth(method = "lm")
 ```
+
+```{r}
+news_fit <- lm(log(shares) ~ data_channel + title_sentiment_category + data_channel * title_sentiment_category, data = newsdf)
+
+tidy(news_fit) |>
+  kable(digits = 3)
+```
