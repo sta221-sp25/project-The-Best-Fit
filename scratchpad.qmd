@@ -55,3 +55,25 @@ vif_values <- vif(model)
 print("Variance Inflation Factors:")
 print(vif_values)
 ```
+
+```{r}
+
+title_fit_mod <- lm(log(shares) ~ n_tokens_title + data_channel * n_tokens_title + data_channel, data = newsdf) 
+tidy(title_fit_mod) |>
+  kable(digits = 3)
+
+title_fit <- lm(log(shares) ~ title_sentiment_polarity + n_tokens_title + n_tokens_title * title_sentiment_polarity, data = newsdf) 
+tidy(title_fit) |>
+  kable(digits = 3)
+
+```
+
+From this model, we found that while the data channel type at times has a statistically significant linear relationship to log(shares), specifically for Social Media, Technology, and World, the number of words in the title does not have a linear relationship to log(shares), based on their respective p-values. For instance, the p-value for n_tokens_title is 0.677, thus suggesting that there is not a statistically significant linear relationship between n_tokens_title and log(shares). However, while the number of words in the title does not have a significant linear relationship with log(shares) directly, its interaction term specifically with when the data channel is World, is significant (as shown by the p-value of 0.003).
+
+```{r}
+newsdf |>
+  filter(!is.na(data_channel)) |>
+  ggplot(aes(x = n_tokens_title, y = log(shares), color = data_channel)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```

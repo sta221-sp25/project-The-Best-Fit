@@ -464,4 +464,14 @@ newsdf |>
   facet_wrap(~ data_channel)
 ```
 
-From this visualization, we found that generally regardless of data channel type, articles with a mainly neutral tone experienced the greatest mean number of shares. Quantitatively, it appears as though social media experienced the least number of mean shares overall, regardless of tone,
+From this visualization, we found that generally regardless of data channel type, articles with a mainly neutral tone experienced the greatest mean number of shares.
+
+```{r}
+#| label: more-interaction
+
+title_fit_mod <- lm(log(shares) ~ n_tokens_title + data_channel * n_tokens_title + data_channel, data = newsdf) 
+tidy(title_fit_mod) |>
+  kable(digits = 3)
+```
+
+From this model, we found that while the data channel type at times has a statistically significant linear relationship to log(shares), specifically for Social Media, Technology, and World, the number of words in the title does not have a linear relationship to log(shares), based on their respective p-values. For instance, the p-value for n_tokens_title is 0.677, thus suggesting that there is not a statistically significant linear relationship between n_tokens_title and log(shares). However, while the number of words in the title does not have a significant linear relationship with log(shares) directly, its interaction term specifically with when the data channel is World, is significant (as shown by the p-value of 0.003).
