@@ -456,12 +456,45 @@ From our visualizations, it appears that articles that are in the social media d
 [Interaction Effects Exploration]{.underline}
 
 ```{r}
+#| label: model-interact
+
+# Base model without interaction
+model1 <- lm(log(shares) ~ n_tokens_content + n_tokens_title, data = newsdf)
+
+# Model with interaction effect
+model2 <- lm(log(shares) ~ n_tokens_content + n_tokens_title +
+         	n_tokens_content:n_tokens_title, data = newsdf)
+
+# Create tidy dataframes of results with model labels
+summary_model1 <- tidy(model1) %>% mutate(Model = "Model 1")
+summary_model2 <- tidy(model2) %>% mutate(Model = "Model 2")
+
+# Display combined coefficient table
+kable(rbind(summary_model1, summary_model2),
+  	digits = 3,
+  	col.names = c("Term", "Estimate", "Std. Error", "t value", "p-value", "Model"),
+  	caption = "Regression Coefficients for Both Models")
+
+# Compare models using ANOVA
+model_comparison <- tidy(anova(model1, model2))
+kable(model_comparison, digits = 3, caption = "ANOVA Comparison of Models")
+
+```
+
+When comparing linear models with the title and article length as predictors, we explored to see if an interaction effect would have a meaningful difference. Our results show that the effect of title length depends on article length. IE, for very short articles, we'd expect longer titles to be beneficial and for longer articles, vice versa.
+
+```{r}
 #| label: interact-channel
 
 newsdf |>
   ggplot(aes(x = title_sentiment_category, y = mean(shares))) + 
   geom_bar(stat = "identity") + 
-  facet_wrap(~ data_channel)
+  facet_wrap(~ data_channel) +
+  labs(
+    title = "Mean Shares for Title Sentiment Categories",
+    subtitle = "Faceted by Data Channel Type",
+    x = "Title Sentiment"
+  )
 ```
 
 From this visualization, we found that generally regardless of data channel type, articles with a mainly neutral tone experienced the greatest mean number of shares.
