@@ -46,9 +46,9 @@ N_tokens_content - A measure of how long the article’s content is 
 
 N_tokens_title -  A measure of how long the article title is
 
-data_channel - a catagorical variable denoting article topic merged from: Data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, and data_channel_is_world.
+data_channel - a categorical variable denoting article topic merged from: Data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, and data_channel_is_world.
 
-day_published- a catagorical variable indicating publication day merged from indicators: Weekday_is_monday, weekday_is_tuesday, weekday_is_wednesday, weekday_is_thursday, weekday_is_friday,weekday_is_saturday, weekday_is_sunday 
+day_published- a categorical variable indicating publication day merged from indicators: Weekday_is_monday, weekday_is_tuesday, weekday_is_wednesday, weekday_is_thursday, weekday_is_friday,weekday_is_saturday, weekday_is_sunday 
 
 \break
 
@@ -105,7 +105,7 @@ ggplot(data =newsdf, aes(x=data_channel))+
   )
 ```
 
-Next, we discovered that approx 8,233 articles are not tagged for a specific data channel. Due to the nature of the dataset, it's unclear if this was because the article was simply missing a tag, it was mis-tagged while being collected, or if it simply doesn't belong in any of these catagories. With the relatively large size of our dataset, we we decided to exclude entries lacking a data tag NA's from our data channel analysis altogether. These articles lacking a data channel were filtered out.
+Next, we discovered that approx 8,233 articles are not tagged for a specific data channel. Due to the nature of the dataset, it's unclear if this was because the article was simply missing a tag, it was mis-tagged while being collected, or if it simply doesn't belong in any of these categories. With the relatively large size of our dataset, we decided to exclude entries lacking a data tag NA's from our data channel analysis altogether. These articles lacking a data channel were filtered out.
 
 ```{r}
 newsdf<- newsdf |> 
@@ -208,7 +208,7 @@ grid.arrange(a1, a2, a3, a4, a5, ncol = 3,
              top = "Distribution of Article Features")
 ```
 
-Examining the rate of positive words in an article, we see a left skew distribution, with modes at \~0, \~0.75 and \~1. The median positivity is approx 0.71 positvity rate, and the range is from 0 to 1.
+Examining the rate of positive words in an article, we see a left skew distribution, with modes at \~0, \~0.75 and \~1. The median positivity is approx 0.71 positivity rate, and the range is from 0 to 1.
 
 ```{r}
 ggplot(newsdf, aes(x = rate_positive_words)) +
@@ -270,7 +270,7 @@ newsdf |>
   )
 ```
 
-For article length, the graph shows a strongly right skewed distribution, with a median length of 444 and a high standard deveation of 477 words. To remedy this, we might consider a log transfromation which yields a more even distribution.
+For article length, the graph shows a strongly right-skewed distribution, with a median length of 444 and a high standard deviation of 477 words. To remedy this, we might consider a log transformation which yields a more even distribution.
 
 ```{r}
 ggplot(newsdf, aes(x = log(n_tokens_content))) +
@@ -346,7 +346,7 @@ p2 <- ggplot(newsdf, aes(x = rate_negative_words, y = log(shares))) +
 grid.arrange(p1, p2, ncol = 2)
 ```
 
-By plotting the rate of positive words and the rate of negative words against the log transformed share, we can see that neither have a particularly strong relationship with how often the article is shared. The rate of positive words seems to have a weak positive relationship with shares, and the rate of negative words seems to have a weak negative relationship, but both have significant outliers ar 1 and 0.
+By plotting the rate of positive words and the rate of negative words against the log transformed share, we can see that neither have a particularly strong relationship with how often the article is shared. The rate of positive words seems to have a weak positive relationship with shares, and the rate of negative words seems to have a weak negative relationship, but both have significant outliers are 1 and 0.
 
 ```{r}
 ggplot(newsdf, aes(x = title_sentiment_category, y = (shares), fill = title_sentiment_category)) +
@@ -382,7 +382,7 @@ f2<- ggplot(newsdf, aes(x = log(n_tokens_content), y = log(shares))) +
 grid.arrange(f1,f2,ncol=2)
 ```
 
-These graphs shows a weak, positive relationship betweek article length and the log transformed number of shares. Due to the skew, we can apply the log transform to the article length. This shows a more even distribution, with no clear relationship.
+These graphs show a weak, positive relationship between article length and the log transformed number of shares. Due to the skew, we can apply the log transform to the article length. This shows a more even distribution, with no clear relationship.
 
 Similarly, there doesn't seem to be any clear relationship between title length and the number of shares in the graph below.
 
@@ -485,10 +485,14 @@ When comparing linear models with the title and article length as predictors, we
 
 ```{r}
 #| label: interact-channel
+news_summary <- newsdf |>
+  drop_na(data_channel) |>
+  group_by(data_channel, title_sentiment_category) |>
+  summarize(mean_shares = mean(shares, na.rm = TRUE))
 
-newsdf |>
-  ggplot(aes(x = title_sentiment_category, y = mean(shares))) + 
-  geom_bar(stat = "identity") + 
+news_summary |>
+  ggplot(aes(x = title_sentiment_category, y = mean_shares)) + 
+  geom_bar(stat = "identity", fill = "skyblue") + 
   facet_wrap(~ data_channel) +
   labs(
     title = "Mean Shares for Title Sentiment Categories",
@@ -497,7 +501,7 @@ newsdf |>
   )
 ```
 
-From this visualization, we found that generally regardless of data channel type, articles with a mainly neutral tone experienced the greatest mean number of shares.
+From this visualization, it's suggested that the title sentiment may have different impacts on the mean number of shares depending on the type of data channel, thus suggesting that there may be a statistically significant interaction effect between the title sentiment and the data channel type. For instance, while for Social Media and Entertainment, it appears that articles with a Negative sentiment have the greatest number of mean shares, for World and Technology articles, Positive sentiment articles had the greatest mean shares, and for Business, Neutral sentiment articles had the greatest number.
 
 ```{r}
 #| label: more-interaction
