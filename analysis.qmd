@@ -1,0 +1,101 @@
+**Analysis + peer review**
+
+**Draft report**
+
+**Introduction and data**
+
+Our project utilizes the University of California Irvine Machine Learning Repository’s  “Online News Popularity” data set. It includes share counts and descriptive characteristics for articles published by Mashable over two years (from 2013 to 2015). Mashable Inc. is a digital media website founded in 2005 and as of November 2015, it has over 6,000,000 Twitter followers and over 3,200,000 fans on Facebook. The data set in total, has 39644 observations, each representing an individual article. Our project motivation is that with the rise of the internet, we're interested in seeing how different factors influence or decide what goes "viral" on social media. For media companies specifically, this could aid in revealing patterns in what attracts readers to certain articles. Thus, our project aims to answer the **key research question**:
+
+How do different article attributes (ex. Polarity, Positive/Negative Sentiments, Number of Images, etc.) relate to its virality on social media?
+
+**Key Variables:** 
+
+rate_positive_words -  rate of positive words among non-neutral tokens, which captures how emotionally charged the language is. 
+
+Rate_negative_words - rate of negative words among non-neutral tokens, which captures how emotionally charged the language is. 
+
+title_sentiment_polarity - A measure of how polarizing the title is
+
+N_tokens_content - A measure of how long the article’s content is 
+
+N_tokens_title -  A measure of how long the article title is
+
+data_channel - a categorical variable denoting article topic merged from: Data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, and data_channel_is_world.
+
+day_published- a categorical variable indicating publication day merged from indicators: Weekday_is_monday, weekday_is_tuesday, weekday_is_wednesday, weekday_is_thursday, weekday_is_friday,weekday_is_saturday, weekday_is_sunday 
+
+**Key EDA**
+
+Response Variable - our initial EDA of the response variable revealed that it had a heavily right skewed, unimodal distribution. Thus, we imposed a log transformation, which was more symmetric and normally distributed.
+
+```{r}
+#| label: initial-response 
+
+ggplot(newsdf, aes(x = shares)) +
+  geom_histogram(binwidth = 500, fill = "blue", color = "black", alpha = 0.7) +
+  scale_x_continuous(limits = c(0, 50000)) +  # Limit for better visualization
+  labs(title = "Distribution of Article Shares",
+       x = "Number of Shares",
+       y = "Count") +
+  theme_minimal()
+```
+
+```{r}
+#| label: log-transform-response 
+
+ggplot(newsdf, aes(x = log(shares))) +  
+  geom_histogram(binwidth = 0.2, fill = "purple", color = "black", alpha = 0.7) +
+  labs(title = "Log-Transformed Distribution of Shares",
+       x = "Log(Shares)",
+       y = "Count") +
+  theme_minimal()
+```
+
+Key Variables - The key predictor variables we found from our initial exploration were Data Channel and Day Published, with the bivariate EDA we performed with our response variable, log(shares), shown below.
+
+```{r}
+#| label: distribution-day-pub
+
+news_summary <- newsdf |>
+  group_by(day_published) |> 
+  summarize(mean_shares = mean(shares)) 
+
+head(news_summary)
+news_summary|>
+  ggplot(aes(x = day_published, y = mean_shares)) +
+  geom_bar(stat = "identity", fill = "skyblue") + 
+  labs(
+    x = "Day Published", 
+    y = "Mean Number of Article Shares",
+    title = "Mean Number of Article Shares vs. Day Published"
+  )
+```
+
+```{r}
+#| label: data-channel-explore
+
+news_summary_channel <- newsdf |>
+  group_by(data_channel) |> 
+  summarize(mean_shares = mean(shares)) 
+
+head(news_summary_channel)
+news_summary_channel |>
+  drop_na(data_channel) |>
+  ggplot(aes(x = data_channel, y = mean_shares)) +
+  geom_bar(stat = "identity", fill = "skyblue") + 
+  labs(
+    x = "Data Channel", 
+    y = "Mean Number of Article Shares",
+    title = "Mean Number of Article Shares vs. Data Channel"
+  )
+```
+
+#### Methodology
+
+This section includes a brief description of your modeling process. Explain the reasoning for the type of model you’re fitting, predictor variables considered for the model including any interactions. Additionally, show how you arrived at the final model by describing the model selection process, any variable transformations (if needed), and any other relevant considerations that were part of the model fitting process.
+
+#### Results
+
+In this section, you will output the final model and include a brief discussion of the model assumptions, diagnostics, and any relevant model fit statistics.
+
+This section also includes initial interpretations and conclusions drawn from the model.
