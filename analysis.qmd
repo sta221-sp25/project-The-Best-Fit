@@ -114,12 +114,31 @@ tidy(mlr_model) |>
 
 We found that all our predictors were statistically significant (p-value \< 0.05), with the exception of day_publishedFriday, and thus kept them in this model.
 
-Our MLR had an $RMSE$ of \_\_\_\_ and $R^2$ value of \_\_\_\_ . Considering that our response variable was log(shares), this suggests that this MLR model is poorly fit to our data, as it can only explain about \_\_\_ % of the variability that we can see from our response variable, log(shares), and moreover, has a very high RMSE value. This is reaffirmed by the residuals plot, which reveals that the residuals are not randomly distributed, meaning that linear regression might not be the ideal model as our data does not satisfy the linear regression criteria. 
+Our MLR had an $RMSE$ of 0.8303 and $R^2$ value of 0.0903 . Considering that our response variable was log(shares), this suggests that this MLR model is poorly fit to our data, as it can only explain about 9.03% of the variability that we can see from our response variable, log(shares), and moreover, has a very high RMSE value. This is reaffirmed by the residuals plot, which reveals that the residuals are not randomly distributed, meaning that linear regression might not be the ideal model as our data does not satisfy the linear regression criteria. 
 
 ```{r}
 #| label: MLR-res
 
+summary_result <- summary(mlr_model)
 
+rmse_val <- sqrt(mean(summary_result$residuals^2))
+
+results_table <- data.frame(
+  Metric = c("R^2", "Adjusted R-squared", "RMSE"),
+  Value = c(
+    round(summary_result$r.squared, 4),
+    round(summary_result$adj.r.squared, 4),
+    round(rmse_val, 4)
+  )
+)
+
+results_table
+```
+
+```{r}
+#| label: residuals-plot
+
+plot(mlr_model, which = c(1))
 ```
 
 Thus, for our final model, we pivoted to use a logistic regression model to classify an article as popular or otherwise, with a threshold for popularity of "1400 shares" based on prior literature. We transformed the shares column into a binary response variable, with 1 for articles more popular than 1400 shares and 0 for those with less.
