@@ -1,0 +1,114 @@
+```{r}
+# Load necessary libraries
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(car)  # For VIF calculation
+
+# Read the dataset
+news_data <- read_csv("OnlineNewsPopularity.csv")
+
+# Log-transform the target variable
+news_data$log_shares <- log(news_data$shares)
+
+# Create MLR model with top predictors identified by your Python analysis
+mlr_model <- lm(log_shares ~ 
+                  kw_min_avg + 
+                  kw_avg_avg + 
+                  n_tokens_content + 
+                  data_channel_is_entertainment + 
+                  data_channel_is_socmed + 
+                  data_channel_is_tech + 
+                  kw_max_max + 
+                  kw_avg_max + 
+                  weekday_is_tuesday + 
+                  global_subjectivity,
+                data = news_data)
+
+# Summary of the model
+summary_result <- summary(mlr_model)
+print(summary_result)
+
+# Check for multicollinearity
+vif_values <- vif(mlr_model)
+print("Variance Inflation Factors:")
+print(vif_values)
+
+# Plot diagnostics
+par(mfrow=c(2,2))
+plot(mlr_model)
+
+# Create a function to calculate RMSE
+rmse <- function(actual, predicted) {
+  sqrt(mean((actual - predicted)^2))
+}
+
+# Calculate RMSE
+model_rmse <- rmse(news_data$log_shares, predict(mlr_model))
+cat("RMSE:", model_rmse, "\n")
+
+# Feature importance (standardized coefficients)
+std_news_data <- news_data %>%
+  mutate(across(c(kw_min_avg, kw_avg_avg, n_tokens_content, kw_max_max, 
+                 kw_avg_max, global_subjectivity), 
+               ~scale(.)))
+
+std_model <- lm(log_shares ~ 
+                 kw_min_avg + 
+                 kw_avg_avg + 
+                 n_tokens_content + 
+                 data_channel_is_entertainment + 
+                 data_channel_is_socmed + 
+                 data_channel_is_tech + 
+                 kw_max_max + 
+                 kw_avg_max + 
+                 weekday_is_tuesday + 
+                 global_subjectivity,
+               data = std_news_data)
+
+# Print standardized coefficients
+std_coefs <- coef(std_model)[-1]  # Remove intercept
+sorted_coefs <- sort(abs(std_coefs), decreasing = TRUE)
+print("Standardized Coefficients (Feature Importance):")
+print(sorted_coefs)
+
+# Visualize top coefficients
+coef_data <- data.frame(
+  Feature = names(sorted_coefs),
+  Coefficient = sorted_coefs
+)
+
+ggplot(coef_data, aes(x = reorder(Feature, Coefficient), y = Coefficient)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Feature Importance (Absolute Standardized Coefficients)",
+       x = "Feature",
+       y = "Absolute Coefficient Value")
+
+# Save plot
+ggsave("feature_importance.png", width = 10, height = 6)
+
+# Check for outliers using Cook's distance
+cooksd <- cooks.distance(mlr_model)
+plot(cooksd, pch = 19, main = "Cook's Distance")
+abline(h = 4/nrow(news_data), col = "red")  # Threshold line
+
+# Optional: Create a reduced model if some features show high multicollinearity
+# Based on VIF results, you may need to remove some predictors
+# For example, if kw_min_avg and kw_avg_avg have high VIF values:
+reduced_model <- lm(log_shares ~ 
+                     kw_avg_avg +  # Keep only one of the correlated features
+                     n_tokens_content + 
+                     data_channel_is_entertainment + 
+                     data_channel_is_socmed + 
+                     data_channel_is_tech + 
+                     kw_avg_max + 
+                     weekday_is_tuesday + 
+                     global_subjectivity,
+                   data = news_data)
+
+summary(reduced_model)
+vif(reduced_model)
+```
+
