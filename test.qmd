@@ -3,112 +3,188 @@
 library(readr)
 library(dplyr)
 library(ggplot2)
-library(car)  # For VIF calculation
+library(kableExtra)
+library(car)
 
 # Read the dataset
-news_data <- read_csv("OnlineNewsPopularity.csv")
+news_data <- read_csv("./data/OnlineNewsPopularity.csv")
 
-# Log-transform the target variable
-news_data$log_shares <- log(news_data$shares)
+# Create MLR model with selected predictors
+mlr_model <- lm(log(shares) ~ kw_avg_avg + n_tokens_content + 
+              data_channel_is_entertainment + data_channel_is_socmed +
+              data_channel_is_tech + data_channel_is_bus +
+              weekday_is_tuesday + global_subjectivity +
+              title_sentiment_polarity, 
+            data = news_data)
 
-# Create MLR model with top predictors identified by your Python analysis
-mlr_model <- lm(log_shares ~ 
-                  kw_min_avg + 
-                  kw_avg_avg + 
-                  n_tokens_content + 
-                  data_channel_is_entertainment + 
-                  data_channel_is_socmed + 
-                  data_channel_is_tech + 
-                  kw_max_max + 
-                  kw_avg_max + 
-                  weekday_is_tuesday + 
-                  global_subjectivity,
-                data = news_data)
-
-# Summary of the model
+# Get model summary
 summary_result <- summary(mlr_model)
-print(summary_result)
-
-# Check for multicollinearity
-vif_values <- vif(mlr_model)
-print("Variance Inflation Factors:")
-print(vif_values)
-
-# Plot diagnostics
-par(mfrow=c(2,2))
-plot(mlr_model)
-
-# Create a function to calculate RMSE
-rmse <- function(actual, predicted) {
-  sqrt(mean((actual - predicted)^2))
-}
 
 # Calculate RMSE
-model_rmse <- rmse(news_data$log_shares, predict(mlr_model))
-cat("RMSE:", model_rmse, "\n")
+rmse_val <- sqrt(mean(summary_result$residuals^2))
 
-# Feature importance (standardized coefficients)
-std_news_data <- news_data %>%
-  mutate(across(c(kw_min_avg, kw_avg_avg, n_tokens_content, kw_max_max, 
-                 kw_avg_max, global_subjectivity), 
-               ~scale(.)))
-
-std_model <- lm(log_shares ~ 
-                 kw_min_avg + 
-                 kw_avg_avg + 
-                 n_tokens_content + 
-                 data_channel_is_entertainment + 
-                 data_channel_is_socmed + 
-                 data_channel_is_tech + 
-                 kw_max_max + 
-                 kw_avg_max + 
-                 weekday_is_tuesday + 
-                 global_subjectivity,
-               data = std_news_data)
-
-# Print standardized coefficients
-std_coefs <- coef(std_model)[-1]  # Remove intercept
-sorted_coefs <- sort(abs(std_coefs), decreasing = TRUE)
-print("Standardized Coefficients (Feature Importance):")
-print(sorted_coefs)
-
-# Visualize top coefficients
-coef_data <- data.frame(
-  Feature = names(sorted_coefs),
-  Coefficient = sorted_coefs
+# Create a simple results table
+results_table <- data.frame(
+  Metric = c("Adjusted R-squared", "RMSE", "F-statistic", "p-value"),
+  Value = c(
+    round(summary_result$adj.r.squared, 4),
+    round(rmse_val, 4),
+    round(summary_result$fstatistic[1], 2),
+    format.pval(pf(summary_result$fstatistic[1], 
+                  summary_result$fstatistic[2], 
+                  summary_result$fstatistic[3], 
+                  lower.tail = FALSE), digits = 4)
+  )
 )
+
+# Print nice table
+kable(results_table, format = "html", caption = "Model Performance Metrics") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), 
+                full_width = FALSE)
+
+# Coefficient table (top 5 most significant)
+coef_table <- data.frame(
+  Predictor = names(coef(mlr_model))[-1],  # Exclude intercept
+  Coefficient = round(coef(mlr_model)[-1], 4),
+  p_value = round(summary_result$coefficients[-1, 4], 4)
+) %>%
+  arrange(p_value)
+
+# Print coefficient table
+kable(coef_table, format = "html", caption = "Top 5 Most Significant Predictors") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), 
+                full_width = FALSE)
+
+# Create nicer residual plots
+par(mfrow = c(2, 2))
+plot(mlr_model, which = c(1, 2, 3, 5))
+```
+
+
+
+```{r}
+#model 2.0
+# Load necessary libraries
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(kableExtra)
+library(caret)
+library(pROC)
+
+# Read the dataset
+news_data <- read_csv("./data/OnlineNewsPopularity.csv")
+
+# Create binary target (viral vs. non-viral)
+# Using 1400 shares as the threshold (as mentioned in the data description)
+news_data$is_viral <- ifelse(news_data$shares >= 1400, 1, 0)
+
+# Create logistic regression model with the same predictors
+logit_model <- glm(is_viral ~ kw_avg_avg + n_tokens_content + 
+                  data_channel_is_entertainment + data_channel_is_socmed +
+                  data_channel_is_tech + data_channel_is_bus +
+                  weekday_is_tuesday + global_subjectivity +
+                  title_sentiment_polarity, 
+                family = binomial(link = "logit"),
+                data = news_data)
+
+# Model summary
+summary_result <- summary(logit_model)
+
+# Predictions
+news_data$predicted_prob <- predict(logit_model, type = "response")
+news_data$predicted_class <- ifelse(news_data$predicted_prob >= 0.5, 1, 0)
+
+# Calculate performance metrics
+confusion_matrix <- table(news_data$is_viral, news_data$predicted_class)
+accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+precision <- confusion_matrix[2,2] / sum(confusion_matrix[,2])
+recall <- confusion_matrix[2,2] / sum(confusion_matrix[2,])
+f1_score <- 2 * precision * recall / (precision + recall)
+
+# ROC curve and AUC
+roc_obj <- roc(news_data$is_viral, news_data$predicted_prob)
+auc_value <- auc(roc_obj)
+
+# Create results table
+results_table <- data.frame(
+  Metric = c("Accuracy", "Precision", "Recall", "F1 Score", "AUC"),
+  Value = c(
+    round(accuracy, 4),
+    round(precision, 4),
+    round(recall, 4),
+    round(f1_score, 4),
+    round(auc_value, 4)
+  )
+)
+
+# Print nice table
+kable(results_table, format = "html", caption = "Logistic Regression Performance Metrics") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), 
+                full_width = FALSE)
+
+# Get odds ratios and confidence intervals
+odds_ratios <- exp(coef(logit_model))
+conf_int <- exp(confint(logit_model))
+coef_table <- data.frame(
+  Predictor = names(coef(logit_model)),
+  Odds_Ratio = round(odds_ratios, 4),
+  Lower_CI = round(conf_int[,1], 4),
+  Upper_CI = round(conf_int[,2], 4),
+  p_value = round(summary_result$coefficients[,4], 4)
+) %>%
+  arrange(p_value)
+
+# Print odds ratio table
+kable(coef_table, format = "html", 
+      caption = "Odds Ratios for Predictors of Viral Articles") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), 
+                full_width = FALSE)
+
+# Plot ROC curve
+png("roc_curve.png", width = 800, height = 600)
+plot(roc_obj, main = "ROC Curve for Viral Article Prediction",
+     col = "blue", lwd = 2)
+abline(a = 0, b = 1, lty = 2, col = "red")
+dev.off()
+
+# Create a calibration plot
+calibration_data <- news_data %>%
+  mutate(prob_bin = cut(predicted_prob, breaks = seq(0, 1, 0.1))) %>%
+  group_by(prob_bin) %>%
+  summarize(
+    mean_pred = mean(predicted_prob),
+    actual_rate = mean(is_viral),
+    count = n()
+  )
+
+ggplot(calibration_data, aes(x = mean_pred, y = actual_rate, size = count)) +
+  geom_point(alpha = 0.7) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "red") +
+  xlim(0, 1) + ylim(0, 1) +
+  labs(
+    title = "Calibration Plot for Viral Article Prediction",
+    x = "Predicted Probability",
+    y = "Observed Proportion",
+    size = "Count"
+  ) +
+  theme_minimal()
+ggsave("calibration_plot.png", width = 8, height = 6)
+
+# Feature importance visualization
+coef_data <- data.frame(
+  Feature = names(coef(logit_model))[-1],  # Exclude intercept
+  Coefficient = abs(coef(logit_model)[-1])
+) %>%
+  arrange(desc(Coefficient))
 
 ggplot(coef_data, aes(x = reorder(Feature, Coefficient), y = Coefficient)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   coord_flip() +
   theme_minimal() +
-  labs(title = "Feature Importance (Absolute Standardized Coefficients)",
+  labs(title = "Feature Importance for Viral Article Prediction",
        x = "Feature",
        y = "Absolute Coefficient Value")
-
-# Save plot
-ggsave("feature_importance.png", width = 10, height = 6)
-
-# Check for outliers using Cook's distance
-cooksd <- cooks.distance(mlr_model)
-plot(cooksd, pch = 19, main = "Cook's Distance")
-abline(h = 4/nrow(news_data), col = "red")  # Threshold line
-
-# Optional: Create a reduced model if some features show high multicollinearity
-# Based on VIF results, you may need to remove some predictors
-# For example, if kw_min_avg and kw_avg_avg have high VIF values:
-reduced_model <- lm(log_shares ~ 
-                     kw_avg_avg +  # Keep only one of the correlated features
-                     n_tokens_content + 
-                     data_channel_is_entertainment + 
-                     data_channel_is_socmed + 
-                     data_channel_is_tech + 
-                     kw_avg_max + 
-                     weekday_is_tuesday + 
-                     global_subjectivity,
-                   data = news_data)
-
-summary(reduced_model)
-vif(reduced_model)
+ggsave("logit_feature_importance.png", width = 10, height = 6)
 ```
 
