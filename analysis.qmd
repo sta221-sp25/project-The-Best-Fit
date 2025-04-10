@@ -1,6 +1,53 @@
 ```{r}
 library(pROC)
+library(tidyverse)
+library(tidymodels)
+library(ggplot2)
 
+library(dplyr)
+library(gridExtra)
+library(knitr)
+if (!requireNamespace("car", quietly = TRUE)) {
+  install.packages("car")
+}
+library(car)
+
+newsdf <- read_csv("data/OnlineNewsPopularity.csv")
+
+newsdf$day_published <- NA  # Create a new empty column
+
+newsdf$day_published <- case_when(
+  newsdf$weekday_is_monday == 1 ~ "Monday",
+  newsdf$weekday_is_tuesday == 1 ~ "Tuesday",
+  newsdf$weekday_is_wednesday == 1 ~ "Wednesday",
+  newsdf$weekday_is_thursday == 1 ~ "Thursday",
+  newsdf$weekday_is_friday == 1 ~ "Friday",
+  newsdf$weekday_is_saturday == 1 ~ "Saturday",
+  newsdf$weekday_is_sunday == 1 ~ "Sunday",
+)
+
+newsdf$day_published <- factor(
+  newsdf$day_published,
+  levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+)
+
+
+newsdf$data_channel <- NA
+
+newsdf$data_channel <- case_when(
+  newsdf$data_channel_is_entertainment == 1 ~ "Entertainment",
+  newsdf$data_channel_is_bus == 1 ~ "Business",
+  newsdf$data_channel_is_socmed == 1 ~ "Social Media",
+  newsdf$data_channel_is_tech == 1 ~ "Technology",
+  newsdf$data_channel_is_world == 1 ~ "World",
+)
+
+newsdf$data_channel <- factor(newsdf$data_channel)
+
+newsdf <- newsdf %>%
+  drop_na(kw_avg_avg, kw_max_avg, kw_min_avg, n_tokens_content, 
+          data_channel, day_published, global_subjectivity, 
+          title_sentiment_polarity)
 ```
 
 **Analysis + peer review**
@@ -9,25 +56,33 @@ library(pROC)
 
 **Introduction and data**
 
-Our project utilizes the University of California Irvine Machine Learning Repository’s  “Online News Popularity” data set. It includes share counts and descriptive characteristics for articles published by Mashable over two years (from 2013 to 2015). Mashable Inc. is a digital media website founded in 2005 and as of November 2015, it has over 6,000,000 Twitter followers and over 3,200,000 fans on Facebook. The data set in total, has 39644 observations, each representing an individual article. Our project motivation is that with the rise of the internet, we're interested in seeing how different factors influence or decide what goes "viral" on social media. For media companies specifically, this could aid in revealing patterns in what attracts readers to certain articles. Thus, our project aims to answer the **key research question**:
+Our project utilizes the University of California Irvine Machine Learning Repository’s  “Online News Popularity” data set. It includes share counts and descriptive characteristics for articles published by Mashable over two years (from 2013 to 2015). Mashable Inc. is a digital media website founded in 2005 and as of November 2015, it has over 6,000,000 Twitter followers and over 3,200,000 fans on Facebook. The data set in total, has 39644 observations, each representing an individual article. Our project motivation is that with the rise of the internet, we're interested in seeing how different factors influence or decide what goes "viral" on social media. For media companies specifically, this could aid in revealing patterns in what attracts readers to certain articles. Thus, our project aims to answer the
+
+**Key Research Question**:
 
 How do different article attributes (ex. Polarity, Positive/Negative Sentiments, Number of Images, etc.) relate to its virality on social media?
 
 **Key Variables:** 
 
-rate_positive_words -  rate of positive words among non-neutral tokens, which captures how emotionally charged the language is. 
+**rate_positive_words** - Rate of positive words among non-neutral tokens in the article content. Values range from 0.0 to 1.0, with a mean of 0.6822 and standard deviation of 0.1902. This metric captures the positive emotional tone of the article.
 
-Rate_negative_words - rate of negative words among non-neutral tokens, which captures how emotionally charged the language is. 
+**Rate_negative_words** - Rate of negative words among non-neutral tokens in the article content. Values range from 0.0 to 1.0, with a mean of 0.2879 and standard deviation of 0.1562. This metric captures the negative emotional tone of the article.
 
-title_sentiment_polarity - A measure of how polarizing the title is
+**title_sentiment_polarity** - Measure of the title's sentiment polarity (positivity/negativity). Values range from -1.0 (extremely negative) to 1.0 (extremely positive), with a mean of 0.0714 and standard deviation of 0.2654. This indicates how emotionally charged article titles are.
 
-N_tokens_content - A measure of how long the article’s content is 
+**n_tokens_content** - Number of words in the article content. Values range from 0 to 8,474 words, with a mean of 546.51 and standard deviation of 471.10. This quantifies the overall length of the article.
 
-N_tokens_title -  A measure of how long the article title is
+**n_tokens_title** - Number of words in the article title. Values range from 2 to 23 words, with a mean of 10.40 and standard deviation of 2.11. This measures length of headlines.
 
-data_channel - a categorical variable denoting article topic merged from: Data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, and data_channel_is_world.
+**data_channel** - Categorical variable denoting article topic, merged from indicators: data_channel_is_lifestyle, data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, and data_channel_is_world. This classifies content by subject area.
 
-day_published- a categorical variable indicating publication day merged from indicators: Weekday_is_monday, weekday_is_tuesday, weekday_is_wednesday, weekday_is_thursday, weekday_is_friday,weekday_is_saturday, weekday_is_sunday 
+**day_published** - Categorical variable indicating publication day, merged from indicators: weekday_is_monday, weekday_is_tuesday, weekday_is_wednesday, weekday_is_thursday, weekday_is_friday, weekday_is_saturday, weekday_is_sunday. Additionally includes is_weekend (mean 0.1309) to distinguish weekday from weekend publications.
+
+**kw_avg_avg** - Average shares of average keywords in the article. Values range from 0.0 to 43,567.66, with a mean of 3,135.86 and standard deviation of 1,318.13. This measures the expected popularity of the article's keyword selection.
+
+**global_subjectivity** - Measures the overall subjectivity of the article text. Values range from 0.0 (completely objective) to 1.0 (completely subjective), with a mean of 0.4434 and standard deviation of 0.1167. This quantifies how opinion-based versus fact-based the content is.
+
+**title_sentiment_polarity:** A measure of the title's sentiment polarity (positivity/negativity). Values range from -1.0 (extremely negative) to 1.0 (extremely positive), with a mean of 0.0714 and a standard deviation of 0.2654.
 
 **Key EDA**
 
@@ -109,7 +164,22 @@ mlr_model <- lm(log(shares) ~ kw_avg_avg + n_tokens_content +
               title_sentiment_polarity, 
               data = newsdf)
 tidy(mlr_model) |>
-  kable(digits = 3)
+  kable(digits = 4)
+
+summary_result <- summary(mlr_model)
+
+rmse_val <- sqrt(mean(summary_result$residuals^2))
+
+results_table <- data.frame(
+  Metric = c("R^2", "Adjusted R-squared", "RMSE"),
+  Value = c(
+    round(summary_result$r.squared, 4),
+    round(summary_result$adj.r.squared, 4),
+    round(rmse_val, 4)
+  )
+)
+
+results_table
 ```
 
 We found that all our predictors were statistically significant (p-value \< 0.05), with the exception of day_publishedFriday, and thus kept them in this model.
@@ -141,32 +211,42 @@ plot(mlr_model, which = c(1))
 
 Our MLR had an $RMSE$ of 0.8303 and $R^2$ value of 0.0903 . Considering that our response variable was log(shares), this suggests that this MLR model is poorly fit to our data, as it can only explain about 9.03% of the variability that we can see from our response variable, log(shares), and moreover, has a very high RMSE value. This is reaffirmed by the residuals plot, which reveals that the residuals are not randomly distributed, meaning that linear regression might not be the ideal model as our data does not satisfy the linear regression criteria. 
 
-Thus, for our final model, we pivoted to use a logistic regression model to classify an article as popular or otherwise, with a threshold for popularity of "1400 shares" based on prior literature. We transformed the shares column into a binary response variable, with 1 for articles more popular than 1400 shares and 0 for those with less.
-
 ```{r}
 #| label: log-model 
 
-news_data$is_viral <- ifelse(news_data$shares >= 1400, 1, 0)
+newsdf$is_viral <- ifelse(newsdf$shares >= 1400, 1, 0)
 
 
-logistic_model <- glm(is_viral ~ kw_avg_avg + n_tokens_content + 
-                  data_channel_is_entertainment + data_channel_is_socmed +
-                  data_channel_is_tech + data_channel_is_bus +
-                  weekday_is_tuesday + global_subjectivity +
+logistic_model <- glm(is_viral ~ kw_avg_avg  + n_tokens_content + data_channel +
+                  day_published + global_subjectivity +
                   title_sentiment_polarity, 
                 family = binomial(link = "logit"),
-                data = news_data)
+                data = newsdf)
+```
+
+Thus, for our final model, we pivoted to use a logistic regression model to classify an article as popular or otherwise. We selected a threshold for popularity of "1400 shares" based on prior literature, transforming shares column into a binary response variable with 1 for articles more popular than 1400 shares and 0 for those with less.
+
+As for predictors, we continued using statistically significant predictors data_channel,day_published, etc.
+
+```{r}
+tidy(logistic_model) |>
+kable(digits= 4)
+```
+
+We can clearly see that all but one of the variables remain statistically significant predictors, barring day_publishedTuesday and day_publishedThursday.
+
+```{r}
 summary_result <- summary(logistic_model)
 
-news_data$predicted_prob <- predict(logit_model, type = "response")
-news_data$predicted_class <- ifelse(news_data$predicted_prob >= 0.5, 1, 0)
+newsdf$predicted_prob <- predict(logistic_model, type = "response")
+newsdf$predicted_class <- ifelse(newsdf$predicted_prob >= 0.5, 1, 0)
 
-confusion_matrix <- table(news_data$is_viral, news_data$predicted_class)
+confusion_matrix <- table(newsdf$is_viral, newsdf$predicted_class)
 accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
 precision <- confusion_matrix[2,2] / sum(confusion_matrix[,2])
 
 
-roc_obj <- roc(news_data$is_viral, news_data$predicted_prob)
+roc_obj <- roc(newsdf$is_viral, newsdf$predicted_prob)
 auc_value <- auc(roc_obj)
 
 
@@ -180,11 +260,29 @@ results_table <- data.frame(
 )
 
 
-kable(results_table, format = "html", caption = "Logistic Regression Performance Metrics") %>%
-  kable_styling(bootstrap_options = "striped", 
-                full_width = FALSE)
+kable(results_table, caption = "Logistic Regression Performance Metrics")
+  
 
 
+```
+
+```{r}
+plot(roc_obj, 
+     main = "ROC Curve for Viral News Prediction",
+     col = "blue", 
+     lwd = 2)
+
+abline(a = 0, b = 1, lty = 2, col = "gray")
+
+legend("bottomright", 
+       legend = paste("AUC =", round(auc_value, 4)), 
+       col = "blue", 
+       lwd = 2)
+```
+
+```{r}
+vif_results <- vif(logistic_model)
+print(vif_results)  
 ```
 
 #### Results
