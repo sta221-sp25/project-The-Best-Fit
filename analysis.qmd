@@ -97,30 +97,29 @@ news_summary_channel |>
 
 #### Methodology
 
-From our EDA, we found that the most significant predictor variables were as follows (using p \< 0.05 as our threshold):
+From our EDA, we found that the most significant predictor variables were data_channel and day_published, however, other predictors we initially viewed (such as n_tokens_title, etc.) were not significant. Thus, we chose to fit an initial MLR model using data_channel and day_published, alongside other predictors that we hadn't attempted before (such as kw_avg_avg, n_tokens_content, etc.).
 
-```{r}
-#| label: p-value-table 
-
-# insert code for p-value of significant predictors 
-
-```
-
-Thus, we initially attempted fitting an MLR using said predictors, producing said results: 
+This produced said results:
 
 ```{r}
 #| label: MLR-initial 
 
-# insert code for initial fit MLR + stats 
-
+mlr_model <- lm(log(shares) ~ kw_avg_avg + n_tokens_content + 
+              data_channel + day_published + global_subjectivity +
+              title_sentiment_polarity, 
+              data = newsdf)
+tidy(mlr_model) |>
+  kable(digits = 3)
 ```
+
+We found that all our predictors were statistically significant (p-value \< 0.05), with the exception of day_publishedFriday, and thus kept them in this model.
 
 Our MLR had an $RMSE$ of \_\_\_\_ and $R^2$ value of \_\_\_\_ . Considering that our response variable was log(shares), this suggests that this MLR model is poorly fit to our data, as it can only explain about \_\_\_ % of the variability that we can see from our response variable, log(shares), and moreover, has a very high RMSE value. This is reaffirmed by the residuals plot, which reveals that the residuals are not randomly distributed, meaning that linear regression might not be the ideal model as our data does not satisfy the linear regression criteria. 
 
 ```{r}
 #| label: MLR-res
 
-# insert code for residuals plot 
+
 ```
 
 Thus, for our final model, we pivoted to use a logistic regression model to classify an article as popular or otherwise, with a threshold for popularity of "1400 shares" based on prior literature. We transformed the shares column into a binary response variable, with 1 for articles more popular than 1400 shares and 0 for those with less.
