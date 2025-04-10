@@ -97,6 +97,53 @@ This section includes a brief description of your modeling process. Explain the 
 
 
 
+  For our final model, we pivoted  to use a logistic regression model to classify an article as popular or otherwise , with a threshold for popularity of "1400 shares" based on prior literature. We transformed the shares collumn into a binary response variable, with 1 for articles more popular than 1400 shares and 0 for those with less.
+  
+
+```{r}
+
+
+news_data$is_viral <- ifelse(news_data$shares >= 1400, 1, 0)
+
+
+logistic_model <- glm(is_viral ~ kw_avg_avg + n_tokens_content + 
+                  data_channel_is_entertainment + data_channel_is_socmed +
+                  data_channel_is_tech + data_channel_is_bus +
+                  weekday_is_tuesday + global_subjectivity +
+                  title_sentiment_polarity, 
+                family = binomial(link = "logit"),
+                data = news_data)
+summary_result <- summary(logistic_model)
+
+news_data$predicted_prob <- predict(logit_model, type = "response")
+news_data$predicted_class <- ifelse(news_data$predicted_prob >= 0.5, 1, 0)
+
+confusion_matrix <- table(news_data$is_viral, news_data$predicted_class)
+accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+precision <- confusion_matrix[2,2] / sum(confusion_matrix[,2])
+
+
+roc_obj <- roc(news_data$is_viral, news_data$predicted_prob)
+auc_value <- auc(roc_obj)
+
+
+results_table <- data.frame(
+  Metric = c("Accuracy", "Precision","AUC"),
+  Value = c(
+    round(accuracy, 4),
+    round(precision, 4),
+    round(auc_value, 4)
+  )
+)
+
+
+kable(results_table, format = "html", caption = "Logistic Regression Performance Metrics") %>%
+  kable_styling(bootstrap_options = "striped", 
+                full_width = FALSE)
+
+
+```
+
 
 #### Results
 
