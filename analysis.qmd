@@ -3,7 +3,6 @@ library(pROC)
 
 ```
 
-
 **Analysis + peer review**
 
 **Draft report**
@@ -98,16 +97,36 @@ news_summary_channel |>
 
 #### Methodology
 
-This section includes a brief description of your modeling process. Explain the reasoning for the type of model you’re fitting, predictor variables considered for the model including any interactions. Additionally, show how you arrived at the final model by describing the model selection process, any variable transformations (if needed), and any other relevant considerations that were part of the model fitting process.
-
-
-
-
-  For our final model, we pivoted  to use a logistic regression model to classify an article as popular or otherwise , with a threshold for popularity of "1400 shares" based on prior literature. We transformed the shares collumn into a binary response variable, with 1 for articles more popular than 1400 shares and 0 for those with less.
-  
+From our EDA, we found that the most significant predictor variables were as follows (using p \< 0.05 as our threshold):
 
 ```{r}
+#| label: p-value-table 
 
+# insert code for p-value of significant predictors 
+
+```
+
+Thus, we initially attempted fitting an MLR using said predictors, producing said results: 
+
+```{r}
+#| label: MLR-initial 
+
+# insert code for initial fit MLR + stats 
+
+```
+
+Our MLR had an $RMSE$ of \_\_\_\_ and $R^2$ value of \_\_\_\_ . Considering that our response variable was log(shares), this suggests that this MLR model is poorly fit to our data, as it can only explain about \_\_\_ % of the variability that we can see from our response variable, log(shares), and moreover, has a very high RMSE value. This is reaffirmed by the residuals plot, which reveals that the residuals are not randomly distributed, meaning that linear regression might not be the ideal model as our data does not satisfy the linear regression criteria. 
+
+```{r}
+#| label: MLR-res
+
+# insert code for residuals plot 
+```
+
+Thus, for our final model, we pivoted to use a logistic regression model to classify an article as popular or otherwise, with a threshold for popularity of "1400 shares" based on prior literature. We transformed the shares column into a binary response variable, with 1 for articles more popular than 1400 shares and 0 for those with less.
+
+```{r}
+#| label: log-model 
 
 news_data$is_viral <- ifelse(news_data$shares >= 1400, 1, 0)
 
@@ -149,7 +168,6 @@ kable(results_table, format = "html", caption = "Logistic Regression Performance
 
 
 ```
-
 
 #### Results
 
