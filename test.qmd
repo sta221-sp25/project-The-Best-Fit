@@ -7,13 +7,34 @@ library(kableExtra)
 library(car)
 
 # Read the dataset
-news_data <- read_csv("./data/OnlineNewsPopularity.csv")
+news_data <- read_csv("data/OnlineNewsPopularity.csv")
 
+news_data <- news_data |>
+  mutate (
+    day_published = case_when(
+    news_data$weekday_is_monday == 1 ~ "Monday",
+    news_data$weekday_is_tuesday == 1 ~ "Tuesday",
+    news_data$weekday_is_wednesday == 1 ~ "Wednesday",
+  news_data$weekday_is_thursday == 1 ~ "Thursday",
+  news_data$weekday_is_friday == 1 ~ "Friday",
+  news_data$weekday_is_saturday == 1 ~ "Saturday",
+  news_data$weekday_is_sunday == 1 ~ "Sunday",
+  )
+)
+
+news_data <- news_data |>
+  mutate(
+    data_channel = case_when (
+  news_data$data_channel_is_entertainment == 1 ~ "Entertainment",
+  news_data$data_channel_is_bus == 1 ~ "Business",
+  news_data$data_channel_is_socmed == 1 ~ "Social Media",
+  news_data$data_channel_is_tech == 1 ~ "Technology",
+  news_data$data_channel_is_world == 1 ~ "World"
+    )
+  )
 # Create MLR model with selected predictors
 mlr_model <- lm(log(shares) ~ kw_avg_avg + n_tokens_content + 
-              data_channel_is_entertainment + data_channel_is_socmed +
-              data_channel_is_tech + data_channel_is_bus +
-              weekday_is_tuesday + global_subjectivity +
+              data_channel + day_published + global_subjectivity +
               title_sentiment_polarity, 
             data = news_data)
 
@@ -25,8 +46,9 @@ rmse_val <- sqrt(mean(summary_result$residuals^2))
 
 # Create a simple results table
 results_table <- data.frame(
-  Metric = c("Adjusted R-squared", "RMSE", "F-statistic", "p-value"),
+  Metric = c("R^2", "Adjusted R-squared", "RMSE", "F-statistic", "p-value"),
   Value = c(
+    round(summary_result$r.squared, 4),
     round(summary_result$adj.r.squared, 4),
     round(rmse_val, 4),
     round(summary_result$fstatistic[1], 2),
