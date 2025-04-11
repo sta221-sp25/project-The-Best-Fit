@@ -1,7 +1,7 @@
 ---
-title: "Exploratory Data Analysis Written Report"
+title: "Analysis Written Report"
 author: "The BEST Fit - Philip, Olivia, Leo, Allison"
-date: "3/7/2025"
+date: "4/10/2025"
 format: pdf
 execute: 
   warning: false
@@ -12,6 +12,8 @@ editor: visual
 
 ```{r}
 #| label: load-pkg-data
+
+library(pROC)
 library(tidyverse)
 library(tidymodels)
 library(ggplot2)
@@ -26,7 +28,368 @@ library(car)
 newsdf <- read_csv("data/OnlineNewsPopularity.csv")
 ```
 
-Introduction:
+## **Analysis + Peer Review**
+
+[**Draft report**]{.underline}
+
+[**Introduction and Data**]{.underline}
+
+Our project utilizes the University of California Irvine Machine Learning Repository’s  “Online News Popularity” data set. It includes share counts and descriptive characteristics for articles published by Mashable over two years (from 2013 to 2015). Mashable Inc. is a digital media website founded in 2005 and as of November 2015, it has over 6,000,000 Twitter followers and over 3,200,000 fans on Facebook. The data set in total, has 39644 observations, each representing an individual article. Our project motivation is that with the rise of the internet, we're interested in seeing how different factors influence or decide what goes "viral" on social media. For media companies specifically, this could aid in revealing patterns in what attracts readers to certain articles. Thus, our project aims to answer the
+
+**Key Research Question**:
+
+How do different article attributes (ex. Polarity, Positive/Negative Sentiments, Number of Images, etc.) relate to its virality on social media?
+
+**Key Variables:** 
+
+**rate_positive_words** - Rate of positive words among non-neutral tokens in the article content. Values range from 0.0 to 1.0, with a mean of 0.6822 and standard deviation of 0.1902. This metric captures the positive emotional tone of the article.
+
+**Rate_negative_words** - Rate of negative words among non-neutral tokens in the article content. Values range from 0.0 to 1.0, with a mean of 0.2879 and standard deviation of 0.1562. This metric captures the negative emotional tone of the article.
+
+**title_sentiment_polarity** - Measure of the title's sentiment polarity (positivity/negativity). Values range from -1.0 (extremely negative) to 1.0 (extremely positive), with a mean of 0.0714 and standard deviation of 0.2654. This indicates how emotionally charged article titles are.
+
+**n_tokens_content** - Number of words in the article content. Values range from 0 to 8,474 words, with a mean of 546.51 and standard deviation of 471.10. This quantifies the overall length of the article.
+
+**n_tokens_title** - Number of words in the article title. Values range from 2 to 23 words, with a mean of 10.40 and standard deviation of 2.11. This measures length of headlines.
+
+**data_channel** - Categorical variable denoting article topic, merged from indicators: data_channel_is_lifestyle, data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, and data_channel_is_world. This classifies content by subject area.
+
+**day_published** - Categorical variable indicating publication day, merged from indicators: weekday_is_monday, weekday_is_tuesday, weekday_is_wednesday, weekday_is_thursday, weekday_is_friday, weekday_is_saturday, weekday_is_sunday. Additionally includes is_weekend (mean 0.1309) to distinguish weekday from weekend publications.
+
+**kw_avg_avg** - Average shares of average keywords in the article. Values range from 0.0 to 43,567.66, with a mean of 3,135.86 and standard deviation of 1,318.13. This measures the expected popularity of the article's keyword selection.
+
+**global_subjectivity** - Measures the overall subjectivity of the article text. Values range from 0.0 (completely objective) to 1.0 (completely subjective), with a mean of 0.4434 and standard deviation of 0.1167. This quantifies how opinion-based versus fact-based the content is.
+
+**title_sentiment_polarity:** A measure of the title's sentiment polarity (positivity/negativity). Values range from -1.0 (extremely negative) to 1.0 (extremely positive), with a mean of 0.0714 and a standard deviation of 0.2654.
+
+### **Key EDA**
+
+Response Variable - our initial EDA of the response variable revealed that it had a heavily right skewed, unimodal distribution. Thus, we imposed a log transformation, which was more symmetric and normally distributed.
+
+```{r}
+#| label: initial-response 
+
+ggplot(newsdf, aes(x = shares)) +
+  geom_histogram(binwidth = 500, fill = "blue", color = "black", alpha = 0.7) +
+  scale_x_continuous(limits = c(0, 50000)) +  # Limit for better visualization
+   labs(title = "Distribution of Article Shares",
+       subtitle = "Raw Shares Count (Limited to 50,000)",
+       x = "Number of Shares",
+       y = "Count of Articles") +
+  theme_minimal()
+```
+
+```{r}
+#| label: log-transform-response 
+
+ggplot(newsdf, aes(x = log(shares))) +  
+  geom_histogram(binwidth = 0.2, fill = "purple", color = "black", alpha = 0.7) +
+  labs(title = "Log-Transformed Dist. of Article Shares",
+       subtitle = "More normal distribution post-transformation",
+       x = "Log(Shares)",
+       y = "Count of Articles")+
+  theme_minimal()
+```
+
+Key Variables - The key predictor variables we found from our initial exploration were Data Channel and Day Published, with the bivariate EDA we performed with our response variable, log(shares), shown below.
+
+[Data Cleaning]{.underline}
+
+(Combining existing weekday and data_channel indicator variables into their respective categorical variables.)
+
+```{r}
+newsdf$day_published <- NA  # Create a new empty column
+
+newsdf$day_published <- case_when(
+  newsdf$weekday_is_monday == 1 ~ "Monday",
+  newsdf$weekday_is_tuesday == 1 ~ "Tuesday",
+  newsdf$weekday_is_wednesday == 1 ~ "Wednesday",
+  newsdf$weekday_is_thursday == 1 ~ "Thursday",
+  newsdf$weekday_is_friday == 1 ~ "Friday",
+  newsdf$weekday_is_saturday == 1 ~ "Saturday",
+  newsdf$weekday_is_sunday == 1 ~ "Sunday",
+)
+
+newsdf$day_published <- factor(
+  newsdf$day_published,
+  levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+)
+
+
+newsdf$data_channel <- NA
+
+newsdf$data_channel <- case_when(
+  newsdf$data_channel_is_entertainment == 1 ~ "Entertainment",
+  newsdf$data_channel_is_bus == 1 ~ "Business",
+  newsdf$data_channel_is_socmed == 1 ~ "Social Media",
+  newsdf$data_channel_is_tech == 1 ~ "Technology",
+  newsdf$data_channel_is_world == 1 ~ "World",
+)
+
+newsdf$data_channel <- factor(newsdf$data_channel)
+
+
+tab <- newsdf %>%
+  select(url, day_published, data_channel) %>%
+  head(5)
+kable(tab, caption = "Transformed Data")
+  
+```
+
+```{r}
+#| label: distribution-day-pub
+
+news_summary <- newsdf |>
+  group_by(day_published) |> 
+  summarize(mean_shares = mean(shares)) 
+
+head(news_summary)
+news_summary|>
+  ggplot(aes(x = day_published, y = mean_shares)) +
+  geom_bar(stat = "identity", fill = "skyblue") + 
+  labs(
+    title = "Mean Article Shares by Day of Publication", 
+    subtitle = "Weekend articles tend to receive more shares",
+    x = "Day Published", 
+    y = "Mean Number of Shares",
+  ) 
+```
+
+```{r}
+#| label: data-channel-explore
+
+news_summary_channel <- newsdf |>
+  group_by(data_channel) |> 
+  summarize(mean_shares = mean(shares)) 
+
+head(news_summary_channel)
+news_summary_channel |>
+  drop_na(data_channel) |>
+  ggplot(aes(x = data_channel, y = mean_shares)) +
+  geom_bar(stat = "identity", fill = "skyblue") + 
+  labs(
+    title = "Mean Article Shares by Content Category", 
+    subtitle = "Social Media articles more popular than other catagories",
+    x = "Content Category", 
+    y = "Mean Number of Shares",
+  ) 
+```
+
+### Methodology
+
+From our EDA, we found that the most significant predictor variables were data_channel and day_published, however, other predictors we initially viewed (such as n_tokens_title, etc.) were not significant. Thus, we chose to fit an initial MLR model using data_channel and day_published, alongside other predictors that we hadn't attempted before (such as kw_avg_avg, n_tokens_content, etc.).
+
+This produced said results:
+
+```{r}
+#| label: MLR-initial 
+
+mlr_model <- lm(log(shares) ~ kw_avg_avg + n_tokens_content + 
+              data_channel + day_published + global_subjectivity +
+              title_sentiment_polarity, 
+              data = newsdf)
+tidy(mlr_model) |>
+  kable(digits = 4)
+
+summary_result <- summary(mlr_model)
+
+rmse_val <- sqrt(mean(summary_result$residuals^2))
+
+results_table <- data.frame(
+  Metric = c("R^2", "Adjusted R-squared", "RMSE"),
+  Value = c(
+    round(summary_result$r.squared, 4),
+    round(summary_result$adj.r.squared, 4),
+    round(rmse_val, 4)
+  )
+)
+
+results_table
+```
+
+We found that all our predictors were statistically significant (p-value \< 0.05), with the exception of day_publishedFriday, and thus kept them in this model.
+
+```{r}
+#| label: MLR-res
+
+summary_result <- summary(mlr_model)
+
+rmse_val <- sqrt(mean(summary_result$residuals^2))
+
+results_table <- data.frame(
+  Metric = c("R^2", "Adjusted R-squared", "RMSE"),
+  Value = c(
+    round(summary_result$r.squared, 4),
+    round(summary_result$adj.r.squared, 4),
+    round(rmse_val, 4)
+  )
+)
+
+results_table
+```
+
+```{r}
+#| label: residuals-plot
+
+plot(mlr_model, which = c(1), 
+     main = "Residuals vs Fitted Values for MLR Model",
+     sub = "Non-random pattern suggests violation of linear assumption",
+     col = "darkblue")
+```
+
+Our MLR had an $RMSE$ of 0.8303 and $R^2$ value of 0.0903 . Considering that our response variable was log(shares), this suggests that this MLR model is poorly fit to our data, as it can only explain about 9.03% of the variability that we can see from our response variable, log(shares), and moreover, has a very high RMSE value. This is reaffirmed by the residuals plot, which reveals that the residuals are not randomly distributed, meaning that linear regression might not be the ideal model as our data does not satisfy the linear regression criteria. 
+
+```{r}
+#| label: log-model 
+
+newsdf$is_viral <- ifelse(newsdf$shares >= 1400, 1, 0)
+
+
+logistic_model <- glm(is_viral ~ kw_avg_avg  + n_tokens_content + data_channel +
+                  day_published + global_subjectivity +
+                  title_sentiment_polarity, 
+                family = binomial(link = "logit"),
+                data = newsdf)
+```
+
+Given these limitations, we pivoted to use a logistic regression model to classify an article as popular or otherwise. We selected a threshold for popularity of "1400 shares" based on prior literature, transforming shares column into a binary response variable with 1 for articles more popular than 1400 shares and 0 for those with less. Due to the heavy tails of 'shares' and non-linear relationship between the predictors and article shares, we would expect the logistic regression to be a more effective choice.
+
+As for predictors, we continued using statistically significant predictors data_channel,day_published, etc.
+
+```{r}
+tidy(logistic_model) |>
+kable(digits= 4)
+```
+
+```{r}
+#| label: plot-roc-curve 
+pred_prob <- predict.glm(logistic_model, type = "response")
+
+model_aug <- augment(logistic_model)
+
+model_aug <- model_aug |>
+  mutate(is_viral = as.factor(is_viral))
+
+model_aug <- model_aug |>
+  bind_cols(pred_prob = pred_prob)
+# calculate sensitivity and specificity at each threshold
+roc_curve_data <- model_aug |>
+roc_curve(is_viral, pred_prob,
+event_level = "second")
+# plot roc curve
+autoplot(roc_curve_data)
+
+```
+
+```{r}
+#| label: select-threshold
+
+target_sensitivity <- 0.65
+
+closest_point <- roc_curve_data |>
+  mutate(diff = abs(sensitivity - target_sensitivity)) |>
+  arrange(diff) |> 
+  slice(1)
+
+closest_point$.threshold
+
+```
+
+```{r}
+#| label: confusion-matrix
+
+log_odds <- predict(logistic_model, newsdf)
+newsdf <- newsdf |>
+  bind_cols(log_odds = log_odds)
+newsdf <- newsdf |>
+  mutate(
+    predict_prob = exp(log_odds) / (1 + exp(log_odds))
+  )
+
+newsdf <- newsdf |>
+  mutate(
+    estimateVirality = case_when(
+      predict_prob < 0.4916522 ~ 0,
+      predict_prob > 0.4916522 ~ 1,
+      TRUE ~ NA_real_  
+    )
+  )
+
+newsdf <- newsdf |> 
+  mutate(
+         estimateVirality = as.factor(estimateVirality),
+         is_viral = as.factor(is_viral)
+         )
+
+model_conf <- newsdf |>
+  conf_mat(is_viral,estimateVirality)
+
+autoplot(model_conf, type="heatmap")
+
+```
+
+While our logistic regression model's ROC curve has an AUC of about 0.693, this is a dramatic improvement from our initial linear regression model, and thus we chose to continue using our logistic model for this data set.
+
+### Results
+
+The final model we fitted was:
+
+$$
+\begin{aligned}
+\text{logit}(p_{isViral}) &= -1.3623 \\& +\ 0.0004 \times \text{kwAvgAvg} \\& +\ 0.0003 \times \text{nTokensContent} \\& -\ 0.6580 \times \text{dataChannelEntertainment} \\& +\ 0.8882 \times \text{dataChannelSocialMedia} \\& +\ 0.4839 \times \text{dataChannelTechnology} \\& -\ 0.5048 \times \text{dataChannelWorld} \\& -\ 0.1092 \times \text{dayPublishedTuesday} \\& -\ 0.1194 \times \text{dayPublishedWednesday} \\& +\ 0.1450 \times \text{dayPublishedFriday} \\& +\ 1.0247 \times \text{dayPublishedSaturday} \\& +\ 0.8979 \times \text{dayPublishedSunday} \\& +\ 0.5384 \times \text{globalSubjectivity} \\& +\ 0.2244 \times \text{titleSentimentPolarity}
+\end{aligned}
+$$
+
+```{r}
+#| label: model-info 
+
+
+roc_obj <- roc(newsdf$is_viral, newsdf$predict_prob)
+auc_value <- auc(roc_obj)
+
+TN <- 9977
+FP <- 5501
+FN <- 5577
+TP <- 10356
+
+
+accuracy <- (TP + TN) / (TP + TN + FP + FN)
+misclassification <- (FP + FN) / (TP + TN + FP + FN)
+sensitivity <- TP / (TP + FN)  
+specificity <- TN / (TN + FP)
+precision <- TP / (TP + FP)
+FPR <- FP / (FP + TN)
+FNR <- FN / (FN + TP)
+
+metrics_table <- data.frame(
+  Metric = c("Accuracy", "Misclassification Rate", "Sensitivity (Recall)", "Specificity", 
+             "Precision", "False Positive Rate (FPR)", "False Negative Rate (FNR)", "AUC"),
+  Value = c(accuracy, misclassification, sensitivity, specificity, 
+            precision, FPR, FNR, auc_value)
+)
+
+# Print table
+kable(metrics_table, digits = 3, caption = "Logistic Model Metrics Summary")
+```
+
+```{r}
+vif_results <- vif(logistic_model)
+print(vif_results)  
+```
+
+Our logistic regression model has an AUC of around 0.693, an accuracy of 0.647, specificity of 0.645, and sensitivity of 0.650. In comparison, the mis-classification rate, FPR, and FNR rates were 0.353, 0.355, and 0.350 respectively. This suggests that our model is moderately well fit for the data, as while the accuracy, specificity, sensitivity, and precision were relatively high at around 0.650, the FNR, FPR, and mis-classification rates were lower, at around 0.350. This precision means that approximately 65% of articles predicted to be viral were correctly classified, indicating the model performs significantly better than random chance. This relatively low predictive power may also be due to random noise, as many features of each article are likely uncaptured by the dataset and article virality may be influenced by sudden trends.
+
+From our model, we can conclude that several key factors significantly influence article virality:
+
+Content category plays a critical role in determining article popularity. Notably, Social media articles and technology articles are approximately 2.43 and 1.62 times, respectively, more likely than a similar business article to go viral. Conversely, Entertainment and World news are less sucessful catagories, with 48.2% and 39.6% lower odds of going viral, respectively. This suggests that readers are particularly engaged with content about social media and technology innovations, while being less likely to widely share entertainment and world news.
+
+Day of publication is another important factor in article virality. Weekend publications dramatically outperform weekday content, with Saturday articles enjoying 2.79 times higher odds and Sunday articles 2.45 times higher odds of virality compared to Monday publications. This weekend effect likely arises from increased leisure time as people take off from work or school, as weekdays show the opposite effect, with Tuesday and Wednesday's articles being 10.4% and 11.3% less likely to be viral.
+
+While our initial set of "article sentiment" variables had relatively low predictive power, our model predicts a purely subjective article would have 71.3% higher odds of achieving viral status compared to purely objective content. Similarly, an article with purely positive sentiment would have 25.2% higher odds than a similar neutral title. This trend shows that, overall, more emotionally charged and polarizing content tends to be shared more often than neutral reporting.
+
+Finally, while statistically important to the model, article length and keyword popularity have relatively small coefficients, making them less important to practical cases.
+
+### **Appendix**
 
 **Exploratory Data Analysis:**
 
