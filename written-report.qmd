@@ -281,6 +281,8 @@ autoplot(roc_curve_data)
 
 ```
 
+From the ROC curve, we estimated that the best threshold for our model would be when sensitivity was about 0.65. Thus, we found the closest point on the ROC curve to sensitivity = 0.65, which we found to be when threshold = 0.492. Using this calculation, we were then able to predict the virality categorization for each observation and generate our confusion matrix, as shown below.
+
 ```{r}
 #| label: select-threshold
 
