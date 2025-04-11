@@ -82,8 +82,6 @@ par(mfrow = c(2, 2))
 plot(mlr_model, which = c(1, 2, 3, 5))
 ```
 
-
-
 ```{r}
 #model 2.0
 # Load necessary libraries
@@ -210,3 +208,34 @@ ggplot(coef_data, aes(x = reorder(Feature, Coefficient), y = Coefficient)) +
 ggsave("logit_feature_importance.png", width = 10, height = 6)
 ```
 
+```{r}
+#| label: other-log
+
+summary_result <- summary(logistic_model)
+
+newsdf$predicted_prob <- predict(logistic_model, type = "response")
+newsdf$predicted_class <- ifelse(newsdf$predicted_prob >= 0.5, 1, 0)
+
+confusion_matrix <- table(newsdf$is_viral, newsdf$predicted_class)
+accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+precision <- confusion_matrix[2,2] / sum(confusion_matrix[,2])
+
+
+roc_obj <- roc(newsdf$is_viral, newsdf$predicted_prob)
+auc_value <- auc(roc_obj)
+
+
+results_table <- data.frame(
+  Metric = c("Accuracy", "Precision","AUC"),
+  Value = c(
+    round(accuracy, 4),
+    round(precision, 4),
+    round(auc_value, 4)
+  )
+)
+
+
+kable(results_table, caption = "Logistic Regression Performance Metrics")
+  
+
+```
