@@ -243,7 +243,7 @@ Our MLR had an $RMSE$ of 0.8303 and $R^2$ value of 0.0903 . Considering that our
 newsdf$is_viral <- ifelse(newsdf$shares >= 1400, 1, 0)
 
 
-logistic_model <- glm(is_viral ~ kw_avg_avg  + n_tokens_content + data_channel +
+logistic_model <- glm(is_viral ~ log(kw_avg_avg + 0.0001)  + log(n_tokens_content + 0.0001) + data_channel +
                   day_published + global_subjectivity +
                   title_sentiment_polarity, 
                 family = binomial(link = "logit"),
@@ -279,6 +279,19 @@ event_level = "second")
 # plot roc curve
 autoplot(roc_curve_data)
 
+```
+
+```{r}
+#| label: original-auc 
+
+auc_original <- roc_auc(
+  data = model_aug, 
+  truth = is_viral, 
+  pred_prob,
+  event_level = "second"
+)
+
+auc_original
 ```
 
 From the ROC curve, we estimated that the best threshold for our model would be when sensitivity was about 0.65. Thus, we found the closest point on the ROC curve to sensitivity = 0.65, which we found to be when threshold = 0.492. Using this calculation, we were then able to predict the virality categorization for each observation and generate our confusion matrix, as shown below.
@@ -335,13 +348,13 @@ While our logistic regression model's ROC curve has an AUC of about 0.693, this 
 \[INTERACTIONS\]
 
 ```{r}
-nullMod <- glm(is_viral ~ kw_avg_avg  + log(n_tokens_content+0.0001) + data_channel +
+nullMod <- glm(is_viral ~ log(kw_avg_avg)  + log(n_tokens_content+0.0001) + data_channel +
                   day_published + global_subjectivity +
                   title_sentiment_polarity, 
                 family = binomial(link = "logit"),
                 data = newsdf)
 
-interactsMod <- glm(is_viral ~ kw_avg_avg  + log(n_tokens_content+0.001) + data_channel +
+interactsMod <- glm(is_viral ~ log(kw_avg_avg)  + log(n_tokens_content+0.001) + data_channel +
                   day_published + global_subjectivity +
                   title_sentiment_polarity + n_tokens_content * data_channel, 
                 family = binomial(link = "logit"),
