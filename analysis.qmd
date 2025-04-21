@@ -103,6 +103,62 @@ How do different article attributes (ex. Polarity, Positive/Negative Sentiments,
 Response Variable - our initial EDA of the response variable revealed that it had a heavily right skewed, unimodal distribution. Thus, we imposed a log transformation, which was more symmetric and normally distributed.
 
 ```{r}
+ggplot(newsdf, aes(x = title_sentiment_polarity)) +
+  geom_histogram(fill = "blue", color = "black", alpha = 0.7) +
+   labs(title = "Distribution of measure of the title's sentiment polarity",
+       x = "measure of the title's sentiment polarity",
+       y = "Count of Articles") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(newsdf, aes(x = global_subjectivity)) +
+  geom_histogram(fill = "blue", color = "black", alpha = 0.7) +
+   labs(title = "Distribution of Average shares of average keywords",
+       subtitle = "Average shares of average keywords",
+       x = "Average shares of average keywords",
+       y = "Count of Articles") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(newsdf, aes(x = kw_avg_avg)) +
+  geom_histogram(binwidth = 500, fill = "blue", color = "black", alpha = 0.7) +
+   labs(title = "Distribution of Average shares of average keywords",
+       subtitle = "Average shares of average keywords",
+       x = "Average shares of average keywords",
+       y = "Count of Articles") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(newsdf, aes(x = log(kw_avg_avg))) +  
+  geom_histogram(fill = "purple", color = "black", alpha = 0.7) +
+  labs(title = "Log-Transformed Dist. of Average shares of average keywords",
+       x = "Log(Average shares of average keywords)",
+       y = "Count of Articles")+
+  theme_minimal()
+```
+
+```{r}
+ggplot(newsdf, aes(x = n_tokens_content)) +
+  geom_histogram(fill = "blue", color = "black", alpha = 0.7) +
+   labs(title = "Distribution of Number of words in the article content",
+       x = "Number of words in the article content",
+       y = "Count of Articles") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(newsdf, aes(x = log(n_tokens_content))) +  
+  geom_histogram(fill = "purple", color = "black", alpha = 0.7) +
+  labs(title = "Log-Transformed Dist. of Number of words in the article content",
+       x = "Log(Number of words in the article content)",
+       y = "Count of Articles")+
+  theme_minimal()
+```
+
+```{r}
 #| label: initial-response 
 
 ggplot(newsdf, aes(x = shares)) +
