@@ -11,6 +11,8 @@ editor: visual
 ---
 
 ```{r}
+install.packages("pROC")
+
 library(pROC)
 library(tidyverse)
 library(tidymodels)
@@ -379,3 +381,53 @@ Day of publication is another important factor in article virality. Weekend publ
 While our initial set of "article sentiment" variables had relatively low predictive power, our model predicts a purely subjective article would have 71.3% higher odds of achieving viral status compared to purely objective content. Similarly, an article with purely positive sentiment would have 25.2% higher odds than a similar neutral title. This trend shows that, overall, more emotionally charged and polarizing content tends to be shared more often than neutral reporting.
 
 Finally, while statistically important to the model, article length and keyword popularity have relatively small coefficients, making them less important to practical cases.
+
+```{r}
+
+ggplot(data = newsdf, aes(x = day_published, fill = is_viral)) +
+ geom_bar(position = "fill") +
+ labs(title = "Whether an article goes viral depending on day published",
+ y = "Proportion") +
+ scale_fill_viridis_d()
+```
+
+```{r}
+
+ggplot(data = newsdf, aes(x = data_channel, fill = is_viral)) +
+ geom_bar(position = "fill") +
+ labs(title = "Whether an article goes viral depending on content category",
+ y = "Proportion") +
+ scale_fill_viridis_d()
+```
+
+```{r}
+ggplot(data = newsdf, aes(x = kw_avg_avg, y = log_odds)) +
+  geom_point(size = 3, color = "blue") +  # Plot empirical logits
+  geom_smooth(method = "lm", se = FALSE, color = "red") +  # Fit a line
+  labs(
+    title = "Empirical Logit Plot",
+    x = "Average shares of average keywords in the article",
+    y = "Empirical Logit"
+  ) +
+  theme_minimal()
+
+ggplot(data = newsdf, aes(x = global_subjectivity, y = log_odds)) +
+  geom_point(size = 3, color = "blue") +  # Plot empirical logits
+  geom_smooth(method = "lm", se = FALSE, color = "red") +  # Fit a line
+  labs(
+    title = "Empirical Logit Plot",
+    x = "Overall Subjectivity",
+    y = "Empirical Logit"
+  ) +
+  theme_minimal()
+
+ggplot(data = newsdf, aes(x = title_sentiment_polarity, y = log_odds)) +
+  geom_point(size = 3, color = "blue") +  # Plot empirical logits
+  geom_smooth(method = "lm", se = FALSE, color = "red") +  # Fit a line
+  labs(
+    title = "Empirical Logit Plot",
+    x = "Title's Sentiment Polarity",
+    y = "Empirical Logit"
+  ) +
+  theme_minimal()
+```
