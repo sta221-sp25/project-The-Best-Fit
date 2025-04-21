@@ -90,13 +90,43 @@ ggplot(data = newsdf, aes(x=data_channel, fill=is_viral )) +
 ```
 
 ```{r}
+newsdf <- newsdf|>
+  mutate(
+    is_viral = factor(is_viral, 
+                       levels = c(0,1), 
+                       labels = c("Not Viral", "Viral"))
+  )
+
 ggplot(data = newsdf, aes(x=day_published, fill=is_viral )) + 
     geom_bar(position="fill")
+
 ```
 
 `{# TODO - Subjectiity has varying effects based on data channel, show that}`
 
 ```{r}
-ggplot(newsdf, aes(fill=is_viral, y=n_tokens_content, x=data_channel)) + 
-    geom_bar(position="dodge", stat="identity")
+#| label: interaction-subjectivity-data_channel 
+
+ggplot(newsdf, aes(fill=is_viral, y=global_subjectivity)) + 
+  geom_boxplot(position = position_dodge()) + 
+  facet_wrap(~ data_channel) + 
+  coord_flip(ylim = c(0, 0.6)) + 
+  labs(
+    y = "Global Subjectivity", 
+    fill = "Virality"
+  )
+
+```
+
+```{r}
+#| label: interaction-length-virality 
+ggplot(newsdf, aes(fill=is_viral, y=log(n_tokens_content))) + 
+  geom_boxplot(position = position_dodge(width = 0.8)) + 
+  facet_wrap(~ data_channel) + 
+  coord_cartesian(ylim = c(-0.1, 0.1)) + 
+  coord_flip(ylim = c(4, 8)) +
+  labs(
+    y = "Article Body Length (log transformed)", 
+    fill = "Virality"
+  )
 ```
