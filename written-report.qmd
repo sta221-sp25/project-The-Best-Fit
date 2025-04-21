@@ -259,6 +259,8 @@ tidy(logistic_model) |>
 kable(digits= 4)
 ```
 
+a
+
 ```{r}
 #| label: plot-roc-curve 
 pred_prob <- predict.glm(logistic_model, type = "response")
@@ -333,13 +335,13 @@ While our logistic regression model's ROC curve has an AUC of about 0.693, this 
 \[INTERACTIONS\]
 
 ```{r}
-nullMod <- glm(is_viral ~ kw_avg_avg  + n_tokens_content + data_channel +
+nullMod <- glm(is_viral ~ kw_avg_avg  + log(n_tokens_content+0.0001) + data_channel +
                   day_published + global_subjectivity +
                   title_sentiment_polarity, 
                 family = binomial(link = "logit"),
                 data = newsdf)
 
-interactsMod <- glm(is_viral ~ kw_avg_avg  + n_tokens_content + data_channel +
+interactsMod <- glm(is_viral ~ kw_avg_avg  + log(n_tokens_content+0.001) + data_channel +
                   day_published + global_subjectivity +
                   title_sentiment_polarity + n_tokens_content * data_channel, 
                 family = binomial(link = "logit"),
@@ -363,6 +365,71 @@ interactsMod <- glm(is_viral ~ kw_avg_avg  + n_tokens_content + data_channel +
 ```
 
 ! SMALL P\_ VALUE
+
+```{r}
+# Predict log-odds using the interaction model
+log_odds_int <- predict(interactsMod, newdata = newsdf)
+
+# Append predictions to the dataset
+news_eval <- newsdf |>
+  bind_cols(log_odds_int = log_odds_int)
+
+# Convert to predicted probabilities
+news_eval <- news_eval |>
+  mutate(
+    prob_int = exp(log_odds_int) / (1 + exp(log_odds_int))
+  )
+
+# Apply classification threshold (from prior ROC analysis)
+news_eval <- news_eval |>
+  mutate(
+    predicted_label = case_when(
+      prob_int < 0.492 ~ 0,
+      prob_int >= 0.492 ~ 1,
+      TRUE ~ NA_real_
+    ),
+    predicted_label = as.factor(predicted_label),
+    is_viral = as.factor(is_viral)
+  )
+
+# Generate and plot confusion matrix
+conf_matrix_int <- news_eval |>
+  conf_mat(is_viral, predicted_label)
+
+autoplot(conf_matrix_int, type = "heatmap")
+
+
+```
+
+```{r}
+# Generate predicted probabilities for ROC analysis
+prob_roc_int <- predict(interactsMod, type = "response")
+
+# Augment model and add probabilities
+aug_data_int <- augment(interactsMod) |>
+  mutate(
+    is_viral = as.factor(is_viral),
+    prob_roc_int = prob_roc_int
+  )
+
+# Generate ROC data
+roc_data_int <- aug_data_int |>
+  roc_curve(is_viral, prob_roc_int, event_level = "second")
+
+# Plot ROC curve
+autoplot(roc_data_int)
+
+```
+
+```{r}
+auc_result_int <- roc_auc(
+  data = aug_data_int,
+  truth = is_viral,
+  prob_roc_int,
+  event_level = "second"
+)
+auc_result_int
+```
 
 ### Results
 
