@@ -8,79 +8,95 @@ editor: visual
 ---
 
 ```{r}
-#| label: load-pkg-data
-library(tidyverse)
-library(tidymodels)
-library(ggplot2)
-library(dplyr)
-library(gridExtra)
-library(knitr)
-if (!requireNamespace("car", quietly = TRUE)) {
-  install.packages("car")
-}
-library(car)
+newsdf$is_viral <- ifelse(newsdf$shares >= 1400, 1, 0)
 
-newsdf <- read_csv("data/OnlineNewsPopularity.csv")
-```
 
-```{r}
-p1 <- ggplot(newsdf, aes(x = rate_positive_words, y = log(shares))) +
-  geom_point( color = "blue") +
-  geom_smooth(method = "lm", color = "red") +
-  labs(title = "Log(Shares) vs Rate of Positive Words",
-       x = "Rate of Positive Words", 
-       y = "Log(Shares)") +
-  theme_minimal()
-
-p2 <- ggplot(newsdf, aes(x = rate_negative_words, y = log(shares))) +
-  geom_point(color = "blue") +
-  geom_smooth(method = "lm", color = "red") +
-  labs(title = "Log(Shares) vs Rate of Negative Words",
-       x = "Rate of Negative Words", 
-       y = "Log(Shares)")
-grid.arrange(p1, p2, ncol = 2)
-
+logistic_model <- glm(is_viral ~ kw_avg_avg  + n_tokens_content + data_channel +
+                  is_weekend + global_subjectivity +
+                  title_sentiment_polarity, 
+                family = binomial(link = "logit"),
+                data = newsdf)
 
 ```
 
 ```{r}
-model <- lm(log(shares) ~ rate_negative_words + rate_positive_words, data =newsdf ) 
-  tidy(model)|>
-  kable(digits=3)
+pred_prob <- predict.glm(logistic_model, type = "response")
+
+model_aug <- augment(logistic_model)
+
+model_aug <- model_aug |>
+  mutate(is_viral = as.factor(is_viral))
+
+model_aug <- model_aug |>
+  bind_cols(pred_prob = pred_prob)
+# calculate sensitivity and specificity at each threshold
+roc_curve_data <- model_aug |>
+roc_curve(is_viral, pred_prob,
+event_level = "second")
+# plot roc curve
+autoplot(roc_curve_data)
+```
+
+```{r}
+
+target_sensitivity <- 0.65
+
+closest_point <- roc_curve_data |>
+  mutate(diff = abs(sensitivity - target_sensitivity)) |>
+  arrange(diff) |> 
+  slice(1)
+
+closest_point$.threshold
+```
+
+```{r}
+log_odds <- predict(logistic_model, newsdf)
+newsdf <- newsdf |>
+  bind_cols(log_odds = log_odds)
+newsdf <- newsdf |>
+  mutate(
+    predict_prob = exp(log_odds) / (1 + exp(log_odds))
+  )
+
+newsdf <- newsdf |>
+  mutate(
+    estimateVirality = case_when(
+      predict_prob < 0.4916522 ~ 0,
+      predict_prob > 0.4916522 ~ 1,
+      TRUE ~ NA_real_  
+    )
+  )
+
+newsdf <- newsdf |> 
+  mutate(
+         estimateVirality = as.factor(estimateVirality),
+         is_viral = as.factor(is_viral)
+         )
+
+model_conf <- newsdf |>
+  conf_mat(is_viral,estimateVirality)
+
+autoplot(model_conf, type="heatmap")
+```
+
+```{r}
+
+newsdf$is_viral <- as.factor(newsdf$is_viral)
+
+ggplot(data = newsdf, aes(x=data_channel, fill=is_viral )) + 
+    geom_bar(position="fill")
+
 
 ```
 
 ```{r}
-vif_values <- vif(model)
-print("Variance Inflation Factors:")
-print(vif_values)
+ggplot(data = newsdf, aes(x=day_published, fill=is_viral )) + 
+    geom_bar(position="fill")
 ```
 
-```{r}
-
-title_fit_mod <- lm(log(shares) ~ n_tokens_title + data_channel * n_tokens_title + data_channel, data = newsdf) 
-tidy(title_fit_mod) |>
-  kable(digits = 3)
-
-title_fit <- lm(log(shares) ~ title_sentiment_polarity + n_tokens_title + n_tokens_title * title_sentiment_polarity, data = newsdf) 
-tidy(title_fit) |>
-  kable(digits = 3)
-
-```
-
-From this model, we found that while the data channel type at times has a statistically significant linear relationship to log(shares), specifically for Social Media, Technology, and World, the number of words in the title does not have a linear relationship to log(shares), based on their respective p-values. For instance, the p-value for n_tokens_title is 0.677, thus suggesting that there is not a statistically significant linear relationship between n_tokens_title and log(shares). However, while the number of words in the title does not have a significant linear relationship with log(shares) directly, its interaction term specifically with when the data channel is World, is significant (as shown by the p-value of 0.003).
+`{# TODO - Subjectiity has varying effects based on data channel, show that}`
 
 ```{r}
-newsdf |>
-  filter(!is.na(data_channel)) |>
-  ggplot(aes(x = n_tokens_title, y = log(shares), color = data_channel)) +
-  geom_point() +
-  geom_smooth(method = "lm")
-```
-
-```{r}
-news_fit <- lm(log(shares) ~ data_channel + title_sentiment_category + data_channel * title_sentiment_category, data = newsdf)
-
-tidy(news_fit) |>
-  kable(digits = 3)
+ggplot(newsdf, aes(fill=is_viral, y=n_tokens_content, x=data_channel)) + 
+    geom_bar(position="dodge", stat="identity")
 ```
