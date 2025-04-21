@@ -330,6 +330,40 @@ autoplot(model_conf, type="heatmap")
 
 While our logistic regression model's ROC curve has an AUC of about 0.693, this is a dramatic improvement from our initial linear regression model, and thus we chose to continue using our logistic model for this data set.
 
+\[INTERACTIONS\]
+
+```{r}
+nullMod <- glm(is_viral ~ kw_avg_avg  + n_tokens_content + data_channel +
+                  day_published + global_subjectivity +
+                  title_sentiment_polarity, 
+                family = binomial(link = "logit"),
+                data = newsdf)
+
+interactsMod <- glm(is_viral ~ kw_avg_avg  + n_tokens_content + data_channel +
+                  day_published + global_subjectivity +
+                  title_sentiment_polarity + n_tokens_content * data_channel, 
+                family = binomial(link = "logit"),
+                data = newsdf)
+```
+
+```{r}
+(L_0 <- glance(nullMod)$logLik)
+```
+
+```{r}
+(L_a <- glance(interactsMod)$logLik)
+```
+
+```{r}
+(G <- -2 * (L_0 - L_a))
+```
+
+```{r}
+(p_value <- pchisq(G, df = 3, lower.tail = FALSE))
+```
+
+! SMALL P\_ VALUE
+
 ### Results
 
 The final model we fitted was:
