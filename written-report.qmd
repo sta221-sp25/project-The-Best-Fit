@@ -259,8 +259,6 @@ tidy(logistic_model) |>
 kable(digits= 4)
 ```
 
-a
-
 ```{r}
 #| label: plot-roc-curve 
 pred_prob <- predict.glm(logistic_model, type = "response")
@@ -344,6 +342,12 @@ autoplot(model_conf, type="heatmap")
 ```
 
 While our logistic regression model's ROC curve has an AUC of about 0.693, this is a dramatic improvement from our initial linear regression model, and thus we chose to continue using our logistic model for this data set.
+
+Next, we considered possible interaction effects we discovered in our EDA between data_channel and n_tokens_content, using a drop in deviance test.
+
+$$
+H_o : B_{n-tokens-content *data-channel } =0 \\ H_A: B_{n-tokens-content *data-channel } \neq0 
+$$
 
 \[INTERACTIONS\]
 
