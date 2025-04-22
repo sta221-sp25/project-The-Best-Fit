@@ -144,7 +144,7 @@ nullMod <- glm(is_viral ~ log(kw_avg_avg+0.0001) + log(n_tokens_content+0.0001) 
 
 interactsMod <- glm(is_viral ~ log(kw_avg_avg+0.0001) + log(n_tokens_content+0.001) + data_channel +
                      day_published + global_subjectivity +
-                     title_sentiment_polarity + n_tokens_content * data_channel, 
+                     title_sentiment_polarity + log(n_tokens_content+ 0.001) * data_channel, 
                    family = binomial(link = "logit"),
                    data = newsdf)
 
@@ -173,3 +173,28 @@ knitr::kable(deviance_table,
              digits = c(0, 3, 3, 0, 4))
 
 ```
+
+$$ 
+\begin{aligned}
+H_0: \text{logit}(P(\text{is_viral} = 1)) &= \beta_0 \\
+&+ \beta_1 \times \log(\text{kw_avg_avg} + 0.0001) \\
+&+ \beta_2 \times \log(\text{n_tokens_content} + 0.0001) \\
+&+ \beta_3 \times \text{data_channel} \\
+&+ \beta_4 \times \text{day_published} \\
+&+ \beta_5 \times \text{global_subjectivity} \\
+&+ \beta_6 \times \text{title_sentiment_polarity}
+\end{aligned}
+$$
+
+$$ 
+\begin{aligned}
+H_a:\text{logit}(P(\text{is_viral} = 1)) &= \beta_0 \\
+&+ \beta_1 \times \log(\text{kw_avg_avg} + 0.0001) \\
+&+ \beta_2 \times \log(\text{n_tokens_content} + 0.0001) \\
+&+ \beta_3 \times \text{data_channel} \\
+&+ \beta_4 \times \text{day_published} \\
+&+ \beta_5 \times \text{global_subjectivity} \\
+&+ \beta_6 \times \text{title_sentiment_polarity} \\
+&+ \beta_7 \times (\text{n_tokens_content} \times \text{data_channel})
+\end{aligned}
+$$
