@@ -201,9 +201,26 @@ $$
 
 ### Methodology
 
-!!!
+Since initial EDA revealed a heavy right skew in the distribution of article shares, as well as a poential non-linear relationship, we elected to use a logistic regression model with a transformed binary response variable.
 
-```{#| label: log-model}
+Based on our initial EDA and empirical logit visualization, we selected data channel, day published, article subjectivity, title sentiment polarity, log transformed 'avg keyword popularity', and log transformed article content length to fit an initial logistic model.
+
+For the response variable, we constructed "is_viral" by transforming 'share' count into a binary response variable, with 1 for articles more popular than 1400 shares and 0 for those with less. We selected this threshold of 1400 shares based on prior literature\[CITE HERE\] and the recommendation of the data set curator.
+
+$$ 
+\begin{aligned}
+\text{logit}(P(\text{is_viral} = 1)) &= \beta_0 \\
+&+ \beta_1 \times \log(\text{kw_avg_avg} + 0.0001) \\
+&+ \beta_2 \times \log(\text{n_tokens_content} + 0.0001) \\
+&+ \beta_3 \times \text{data_channel} \\
+&+ \beta_4 \times \text{day_published} \\
+&+ \beta_5 \times \text{global_subjectivity} \\
+&+ \beta_6 \times \text{title_sentiment_polarity}
+\end{aligned}
+$$
+
+```{r}
+#| label: log-model 
 
 newsdf$is_viral <- ifelse(newsdf$shares >= 1400, 1, 0)
 
@@ -213,9 +230,107 @@ logistic_model <- glm(is_viral ~ log(kw_avg_avg + 0.0001)  + log(n_tokens_conten
                   title_sentiment_polarity, 
                 family = binomial(link = "logit"),
                 data = newsdf)
+
+tidy(logistic_model) |>
+  mutate(
+    estimate = round(estimate, 4),
+    std.error = round(std.error, 4),
+    statistic = round(statistic, 4),
+    p.value = round(p.value, 4)
+  ) %>%
+  kable(digits = 4, align = "lrrrr",
+        col.names = c("Term", "Estimate", "Std.Error", "z-statistic", "p-value"))
 ```
 
-\
-Given these limitations, we pivoted to use a logistic regression model to classify an article as popular or otherwise. We selected a threshold for popularity of "1400 shares" based on prior literature, transforming shares column into a binary response variable with 1 for articles more popular than 1400 shares and 0 for those with less. Due to the heavy tails of 'shares' and non-linear relationship between the predictors and article shares, we would expect the logistic regression to be a more effective choice.
+Our initial fit gives all of the predictors significant p-values (p\<0.05) and most predictors relatively high magnitude z-statistics, indicating that all variables in the model have statistically significant relationships with the likelihood of content going viral.
+
+Next, we considered the addition
 
 As for predictors, we continued using statistically significant predictors data_channel,day_published, etc.
+
+```{r}
+tidy(logistic_model) |>
+kable(digits= 4)
+```
+
+```{r}
+#| label: plot-roc-curve 
+pred_prob <- predict.glm(logistic_model, type = "response")
+
+model_aug <- augment(logistic_model)
+
+model_aug <- model_aug |>
+  mutate(is_viral = as.factor(is_viral))
+
+model_aug <- model_aug |>
+  bind_cols(pred_prob = pred_prob)
+# calculate sensitivity and specificity at each threshold
+roc_curve_data <- model_aug |>
+roc_curve(is_viral, pred_prob,
+event_level = "second")
+# plot roc curve
+autoplot(roc_curve_data)
+
+```
+
+```{r}
+#| label: original-auc 
+
+auc_original <- roc_auc(
+  data = model_aug, 
+  truth = is_viral, 
+  pred_prob,
+  event_level = "second"
+)
+
+auc_original
+```
+
+From the ROC curve, we estimated that the best threshold for our model would be when sensitivity was about 0.65. Thus, we found the closest point on the ROC curve to sensitivity = 0.65, which we found to be when threshold = 0.492. Using this calculation, we were then able to predict the virality categorization for each observation and generate our confusion matrix, as shown below.
+
+```{r}
+#| label: select-threshold
+
+target_sensitivity <- 0.65
+
+closest_point <- roc_curve_data |>
+  mutate(diff = abs(sensitivity - target_sensitivity)) |>
+  arrange(diff) |> 
+  slice(1)
+
+closest_point$.threshold
+
+```
+
+```{r}
+#| label: confusion-matrix
+
+log_odds <- predict(logistic_model, newsdf)
+newsdf <- newsdf |>
+  bind_cols(log_odds = log_odds)
+newsdf <- newsdf |>
+  mutate(
+    predict_prob = exp(log_odds) / (1 + exp(log_odds))
+  )
+
+newsdf <- newsdf |>
+  mutate(
+    estimateVirality = case_when(
+      predict_prob < 0.4916522 ~ 0,
+      predict_prob > 0.4916522 ~ 1,
+      TRUE ~ NA_real_  
+    )
+  )
+
+newsdf <- newsdf |> 
+  mutate(
+         estimateVirality = as.factor(estimateVirality),
+         is_viral = as.factor(is_viral)
+         )
+
+model_conf <- newsdf |>
+  conf_mat(is_viral,estimateVirality)
+
+autoplot(model_conf, type="heatmap")
+
+```
