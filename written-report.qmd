@@ -199,6 +199,25 @@ tidy(logistic_model) |>
 kable(digits= 4)
 ```
 
+When fitting our model, we also visualized the adjusted odds ratios to ensure that all predictors were statistically significant.
+
+```{r}
+#| label: coefficient-estimates 
+
+model_odds_ratios <- tidy(logistic_model, exponentiate = TRUE, conf.int = TRUE)
+
+ggplot(data = model_odds_ratios, aes(x = term, y = estimate)) +
+  geom_point() +
+  geom_hline(yintercept = 1, lty = 2) + 
+  geom_pointrange(aes(ymin = conf.low, ymax = conf.high))+
+  labs(title = "Adjusted odds ratios",
+       x = "",
+       y = "Estimated AOR") +
+  coord_flip()
+```
+
+From this initial visualization, none of the 95% confidence intervals for our predictor coefficients included 1, suggesting that they were all statistically significant. While we had a couple predictors whose confidence intervals were close to 1, we decided to still keep them in the model as day_published_Thursday is one of the factors of the day_published variable, and thus it's acceptable that some of the levels for day_published were not necessarily significant because the other levels were. To add, we decided to keep log(n_tokens_content) as we both saw a possible interaction effect in the earlier EDA and we felt that it was at least a valuable predictor to consider in our model.
+
 ```{r}
 #| label: plot-roc-curve 
 pred_prob <- predict.glm(logistic_model, type = "response")
@@ -288,10 +307,9 @@ Next, we considered possible interaction effects we discovered in our EDA betwee
 The hypothesis for this experiment were:
 
 $$
-H_o : B_{n-tokens-content *data-channel } =0 \\ H_A: B_{n-tokens-content *data-channel } \neq0 
+H_o : B_{n-tokens-content *data-channel } = B_{global-subectivity * data-channel } =0 
+\\ H_A: B_{j} \neq0 \text{ for atleast one } j
 $$
-
-\[INTERACTIONS\]
 
 ```{r}
 #| echo: false
@@ -306,7 +324,8 @@ nullMod <- glm(is_viral ~ log(kw_avg_avg+0.0001) + log(n_tokens_content+0.0001) 
 
 interactsMod <- glm(is_viral ~ log(kw_avg_avg+0.0001) + log(n_tokens_content+0.0001) + data_channel +
                      day_published + global_subjectivity +
-                     title_sentiment_polarity + n_tokens_content * data_channel, 
+                     title_sentiment_polarity + n_tokens_content * data_channel + 
+                      global_subjectivity * data_channel, 
                    family = binomial(link = "logit"),
                    data = newsdf)
 
