@@ -177,7 +177,6 @@ news_summary_channel |>
 
 !!!
 
-
 ```{r}
 #| label: log-model 
 
@@ -293,6 +292,7 @@ H_o : B_{n-tokens-content *data-channel } =0 \\ H_A: B_{n-tokens-content *data-c
 $$
 
 \[INTERACTIONS\]
+
 ```{r}
 #| echo: false
 #| message: false
@@ -304,7 +304,7 @@ nullMod <- glm(is_viral ~ log(kw_avg_avg+0.0001) + log(n_tokens_content+0.0001) 
                family = binomial(link = "logit"),
                data = newsdf)
 
-interactsMod <- glm(is_viral ~ log(kw_avg_avg+0.0001) + log(n_tokens_content+0.001) + data_channel +
+interactsMod <- glm(is_viral ~ log(kw_avg_avg+0.0001) + log(n_tokens_content+0.0001) + data_channel +
                      day_published + global_subjectivity +
                      title_sentiment_polarity + n_tokens_content * data_channel, 
                    family = binomial(link = "logit"),
@@ -336,7 +336,7 @@ knitr::kable(deviance_table,
 
 ```
 
-[INTEPRET THIS HERE ]
+For our drop in deviance test, the p-value is very low, at around 0. This indicates that the data provides sufficient evidence that at-least one of the newly added interaction terms is a statistically significant predictor in whether an article will go viral or not, after accounting for data channel, day published, global subjectivity, title sentiment polarity, average key word popularity, and main body length for a given article. Therefore, we will add the interaction effects to our model.
 
 Model Performance
 
