@@ -175,67 +175,8 @@ news_summary_channel |>
 
 ### Methodology
 
-From our EDA, we found that the most significant predictor variables were data_channel and day_published, however, other predictors we initially viewed (such as n_tokens_title, etc.) were not significant. Thus, we chose to fit an initial MLR model using data_channel and day_published, alongside other predictors that we hadn't attempted before (such as kw_avg_avg, n_tokens_content, etc.).
+!!!
 
-This produced said results:
-
-```{r}
-#| label: MLR-initial 
-
-mlr_model <- lm(log(shares) ~ kw_avg_avg + n_tokens_content + 
-              data_channel + day_published + global_subjectivity +
-              title_sentiment_polarity, 
-              data = newsdf)
-tidy(mlr_model) |>
-  kable(digits = 4)
-
-summary_result <- summary(mlr_model)
-
-rmse_val <- sqrt(mean(summary_result$residuals^2))
-
-results_table <- data.frame(
-  Metric = c("R^2", "Adjusted R-squared", "RMSE"),
-  Value = c(
-    round(summary_result$r.squared, 4),
-    round(summary_result$adj.r.squared, 4),
-    round(rmse_val, 4)
-  )
-)
-
-results_table
-```
-
-We found that all our predictors were statistically significant (p-value \< 0.05), with the exception of day_publishedFriday, and thus kept them in this model.
-
-```{r}
-#| label: MLR-res
-
-summary_result <- summary(mlr_model)
-
-rmse_val <- sqrt(mean(summary_result$residuals^2))
-
-results_table <- data.frame(
-  Metric = c("R^2", "Adjusted R-squared", "RMSE"),
-  Value = c(
-    round(summary_result$r.squared, 4),
-    round(summary_result$adj.r.squared, 4),
-    round(rmse_val, 4)
-  )
-)
-
-results_table
-```
-
-```{r}
-#| label: residuals-plot
-
-plot(mlr_model, which = c(1), 
-     main = "Residuals vs Fitted Values for MLR Model",
-     sub = "Non-random pattern suggests violation of linear assumption",
-     col = "darkblue")
-```
-
-Our MLR had an $RMSE$ of 0.8303 and $R^2$ value of 0.0903 . Considering that our response variable was log(shares), this suggests that this MLR model is poorly fit to our data, as it can only explain about 9.03% of the variability that we can see from our response variable, log(shares), and moreover, has a very high RMSE value. This is reaffirmed by the residuals plot, which reveals that the residuals are not randomly distributed, meaning that linear regression might not be the ideal model as our data does not satisfy the linear regression criteria. 
 
 ```{r}
 #| label: log-model 

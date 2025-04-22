@@ -130,3 +130,46 @@ ggplot(newsdf, aes(fill=is_viral, y=log(n_tokens_content))) +
     fill = "Virality"
   )
 ```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+nullMod <- glm(is_viral ~ log(kw_avg_avg+0.0001) + log(n_tokens_content+0.0001) + data_channel +
+                 day_published + global_subjectivity +
+                 title_sentiment_polarity, 
+               family = binomial(link = "logit"),
+               data = newsdf)
+
+interactsMod <- glm(is_viral ~ log(kw_avg_avg+0.0001) + log(n_tokens_content+0.001) + data_channel +
+                     day_published + global_subjectivity +
+                     title_sentiment_polarity + n_tokens_content * data_channel, 
+                   family = binomial(link = "logit"),
+                   data = newsdf)
+
+# Extract log-likelihoods
+L_0 <- glance(nullMod)$logLik
+L_a <- glance(interactsMod)$logLik
+
+# Calculate test statistic
+G <- -2 * (L_0 - L_a)
+
+# Calculate p-value
+p_value <- pchisq(G, df = 5, lower.tail = FALSE)
+
+# Create table for drop in deviance test
+deviance_table <- tibble(
+  Model = c("Null Model", "Interaction Model"),
+  `Log-Likelihood` = c(L_0, L_a),
+  `Deviance Statistic (G)` = c(NA, G),
+  df = c(NA, 5),
+  `p-value` = c(NA, p_value)
+)
+
+# Display table using knitr::kable
+knitr::kable(deviance_table, 
+             caption = "Drop in Deviance Test Results",
+             digits = c(0, 3, 3, 0, 4))
+
+```
