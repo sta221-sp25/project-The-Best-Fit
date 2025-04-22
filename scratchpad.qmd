@@ -242,9 +242,100 @@ tidy(logistic_model) |>
         col.names = c("Term", "Estimate", "Std.Error", "z-statistic", "p-value"))
 ```
 
+
+
+
 Our initial fit gives all of the predictors significant p-values (p\<0.05) and most predictors relatively high magnitude z-statistics, indicating that all variables in the model have statistically significant relationships with the likelihood of content going viral.
 
-Next, we considered the addition
+Next, we considered the addition of poetential interaction effects between article length and data channel, and between global subjectivity and data channel.
+
+The hypothesis for this experiment were:
+
+$$
+H_o : B_{n-tokens-content *data-channel } =0 \\ H_A: B_{n-tokens-content *data-channel } \neq0 
+$$
+
+
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+nullMod <- glm(is_viral ~ log(kw_avg_avg+0.0001) + log(n_tokens_content+0.0001) + data_channel +
+                 day_published + global_subjectivity +
+                 title_sentiment_polarity, 
+               family = binomial(link = "logit"),
+               data = newsdf)
+
+interactsMod <- glm(is_viral ~ log(kw_avg_avg+0.0001) + log(n_tokens_content+0.0001) + data_channel +
+                     day_published + global_subjectivity +
+                     title_sentiment_polarity + n_tokens_content * data_channel + 
+                      global_subjectivity * data_channel, 
+                   family = binomial(link = "logit"),
+                   data = newsdf)
+
+# Extract log-likelihoods
+L_0 <- glance(nullMod)$logLik
+L_a <- glance(interactsMod)$logLik
+
+# Calculate test statistic
+G <- -2 * (L_0 - L_a)
+
+# Calculate p-value
+p_value <- pchisq(G, df = 5, lower.tail = FALSE)
+
+# Create table for drop in deviance test
+deviance_table <- tibble(
+  Model = c("Null Model", "Interaction Model"),
+  `Log-Likelihood` = c(L_0, L_a),
+  `Deviance Statistic (G)` = c(NA, G),
+  df = c(NA, 5),
+  `p-value` = c(NA, p_value)
+)
+
+# Display table using knitr::kable
+knitr::kable(deviance_table, 
+             caption = "Drop in Deviance Test Results",
+             digits = c(0, 3, 3, 0, 4))
+
+```
+Examining the output of the  deviance test, the p-value is very low, at around 0.
+This indicates that the data provides sufficient evidence that at-least one of the newly added interaction terms is a statistically significant predictor in whether an article will go viral or not, after accounting for data channel, day published, global subjectivity, title sentiment polarity, average key word popularity, and main body length for a given article. Therefore, we will keep the interaction effects in the final model.
+
+
+
+
+```{r}
+#| echo: false
+
+# Generate predicted probabilities for ROC analysis
+prob_roc_int <- predict(interactsMod, type = "response")
+
+aug_data_int <- augment(interactsMod) |>
+  mutate(
+    is_viral = as.factor(is_viral),
+    prob_roc_int = prob_roc_int
+  )
+# Generate ROC data
+roc_data_int <- aug_data_int |>
+  roc_curve(is_viral, prob_roc_int, event_level = "second")
+# Plot ROC curve
+autoplot(roc_data_int) +
+  labs(
+    title = "ROC Curve for News Virality Prediction Model",
+    subtitle = paste("AUC =", round(roc_auc(aug_data_int, is_viral, prob_roc_int, event_level = "second")$.estimate, 4)),
+    x = "False Positive Rate (1 - Specificity)",
+    y = "True Positive Rate (Sensitivity)"
+  ) +
+  theme_minimal()
+
+```   
+
+
+
+
+
 
 As for predictors, we continued using statistically significant predictors data_channel,day_published, etc.
 
