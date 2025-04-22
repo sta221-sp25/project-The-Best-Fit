@@ -198,3 +198,24 @@ H_a:\text{logit}(P(\text{is_viral} = 1)) &= \beta_0 \\
 &+ \beta_7 \times (\text{n_tokens_content} \times \text{data_channel})
 \end{aligned}
 $$
+
+### Methodology
+
+!!!
+
+```{#| label: log-model}
+
+newsdf$is_viral <- ifelse(newsdf$shares >= 1400, 1, 0)
+
+
+logistic_model <- glm(is_viral ~ log(kw_avg_avg + 0.0001)  + log(n_tokens_content + 0.0001) + data_channel +
+                  day_published + global_subjectivity +
+                  title_sentiment_polarity, 
+                family = binomial(link = "logit"),
+                data = newsdf)
+```
+
+\
+Given these limitations, we pivoted to use a logistic regression model to classify an article as popular or otherwise. We selected a threshold for popularity of "1400 shares" based on prior literature, transforming shares column into a binary response variable with 1 for articles more popular than 1400 shares and 0 for those with less. Due to the heavy tails of 'shares' and non-linear relationship between the predictors and article shares, we would expect the logistic regression to be a more effective choice.
+
+As for predictors, we continued using statistically significant predictors data_channel,day_published, etc.
