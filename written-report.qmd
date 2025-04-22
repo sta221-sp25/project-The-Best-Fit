@@ -360,34 +360,7 @@ For our drop in deviance test, the p-value is very low, at around 0. This indica
 Model Performance
 
 ```{r}
-#| echo: false
-#| fig.cap: "Confusion Matrix for the Interaction Model"
-
-# Predict log-odds using the interaction model
-log_odds_int <- predict(interactsMod, newdata = newsdf)
-news_eval <- newsdf |>
-  bind_cols(log_odds_int = log_odds_int)
-# Convert to predicted probabilities
-news_eval <- news_eval |>
-  mutate(
-    prob_int = exp(log_odds_int) / (1 + exp(log_odds_int))
-  )
-news_eval <- news_eval |>
-  mutate(
-    predicted_label = case_when(
-      prob_int < 0.492 ~ 0,
-      prob_int >= 0.492 ~ 1,
-      TRUE ~ NA_real_
-    ),
-    predicted_label = as.factor(predicted_label),
-    is_viral = as.factor(is_viral)
-  )
-conf_matrix_int <- news_eval |>
-  conf_mat(is_viral, predicted_label)
-autoplot(conf_matrix_int, type = "heatmap")
-```
-
-```{r}
+#| label: roc-curve-interaction 
 #| echo: false
 
 # Generate predicted probabilities for ROC analysis
@@ -414,6 +387,47 @@ auc_result_int <- roc_auc(
 ```
 
 ```{r}
+#| label: select-threshold-interaction 
+
+target_sensitivity <- 0.65
+
+closest_point <- roc_data_int |>
+  mutate(diff = abs(sensitivity - target_sensitivity)) |>
+  arrange(diff) |> 
+  slice(1)
+
+closest_point$.threshold
+```
+
+```{r}
+#| echo: false
+#| fig.cap: "Confusion Matrix for the Interaction Model"
+
+# Predict log-odds using the interaction model
+log_odds_int <- predict(interactsMod, newdata = newsdf)
+news_eval <- newsdf |>
+  bind_cols(log_odds_int = log_odds_int)
+# Convert to predicted probabilities
+news_eval <- news_eval |>
+  mutate(
+    prob_int = exp(log_odds_int) / (1 + exp(log_odds_int))
+  )
+news_eval <- news_eval |>
+  mutate(
+    predicted_label = case_when(
+      prob_int < 0.481 ~ 0,
+      prob_int >= 0.481 ~ 1,
+      TRUE ~ NA_real_
+    ),
+    predicted_label = as.factor(predicted_label),
+    is_viral = as.factor(is_viral)
+  )
+conf_matrix_int <- news_eval |>
+  conf_mat(is_viral, predicted_label)
+autoplot(conf_matrix_int, type = "heatmap")
+```
+
+```{r}
 auc_result_int <- roc_auc(
   data = aug_data_int,
   truth = is_viral,
@@ -436,32 +450,27 @@ $$
 ```{r}
 #| label: model-info 
 
-
-roc_obj <- roc(newsdf$is_viral, newsdf$predict_prob)
-auc_value <- auc(roc_obj)
-
-TN <- 9977
-FP <- 5501
-FN <- 5577
-TP <- 10356
-
+TN <- 9993
+FP <- 5576
+FN <- 5485
+TP <- 10357
 
 accuracy <- (TP + TN) / (TP + TN + FP + FN)
 misclassification <- (FP + FN) / (TP + TN + FP + FN)
-sensitivity <- TP / (TP + FN)  
+sensitivity <- TP / (TP + FN)  # Recall
 specificity <- TN / (TN + FP)
 precision <- TP / (TP + FP)
 FPR <- FP / (FP + TN)
 FNR <- FN / (FN + TP)
 
+
 metrics_table <- data.frame(
   Metric = c("Accuracy", "Misclassification Rate", "Sensitivity (Recall)", "Specificity", 
              "Precision", "False Positive Rate (FPR)", "False Negative Rate (FNR)", "AUC"),
   Value = c(accuracy, misclassification, sensitivity, specificity, 
-            precision, FPR, FNR, auc_value)
+            precision, FPR, FNR, auc_result_int$.estimate)
 )
 
-# Print table
 kable(metrics_table, digits = 3, caption = "Logistic Model Metrics Summary")
 ```
 
