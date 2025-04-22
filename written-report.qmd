@@ -175,8 +175,24 @@ news_summary_channel |>
 
 ### Methodology
 
-!!!
+Since initial EDA revealed a heavy right skew in the distribution of article shares, as well as a poential non-linear relationship, we elected to use a logistic regression model with a transformed binary response variable.
 
+Based on our initial EDA and empirical logit visualization, we selected data channel, day published, article subjectivity, title sentiment polarity, log transformed 'avg keyword popularity', and log transformed article content length to fit an initial logistic model.
+
+For the response variable, we constructed "is_viral" by transforming 'share' count into a binary response variable, with 1 for articles more popular than 1400 shares and 0 for those with less. We selected this threshold of 1400 shares based on prior literature\[CITE HERE\] and the recommendation of the data set curator.
+## Model Specification
+
+$$ 
+\begin{aligned}
+\text{logit}(P(\text{is\_viral} = 1)) &= \beta_0 \\
+&+ \beta_1 \times \log(\text{kw\_avg\_avg} + 0.0001) \\
+&+ \beta_2 \times \log(\text{n\_tokens\_content} + 0.0001) \\
+&+ \beta_3 \times \text{data\_channel} \\
+&+ \beta_4 \times \text{day\_published} \\
+&+ \beta_5 \times \text{global\_subjectivity} \\
+&+ \beta_6 \times \text{title\_sentiment\_polarity}
+\end{aligned}
+$$
 ```{r}
 #| label: log-model 
 
@@ -188,16 +204,22 @@ logistic_model <- glm(is_viral ~ log(kw_avg_avg + 0.0001)  + log(n_tokens_conten
                   title_sentiment_polarity, 
                 family = binomial(link = "logit"),
                 data = newsdf)
-```
 
-Given these limitations, we pivoted to use a logistic regression model to classify an article as popular or otherwise. We selected a threshold for popularity of "1400 shares" based on prior literature, transforming shares column into a binary response variable with 1 for articles more popular than 1400 shares and 0 for those with less. Due to the heavy tails of 'shares' and non-linear relationship between the predictors and article shares, we would expect the logistic regression to be a more effective choice.
-
-As for predictors, we continued using statistically significant predictors data_channel,day_published, etc.
-
-```{r}
 tidy(logistic_model) |>
-kable(digits= 4)
+  mutate(
+    estimate = round(estimate, 4),
+    std.error = round(std.error, 4),
+    statistic = round(statistic, 4),
+    p.value = round(p.value, 4)
+  ) %>%
+  kable(digits = 4, align = "lrrrr",
+        col.names = c("Term", "Estimate", "Std.Error", "z-statistic", "p-value"))
 ```
+
+Our initial fit gives all of the predictors significant p-values (p<0.05) and most predictors relatively high magnitude z-statistics, indicating that all variables in the model have statistically significant relationships with the likelihood of content going viral.
+
+
+## Coeficent Analysis
 
 When fitting our model, we also visualized the adjusted odds ratios to ensure that all predictors were statistically significant.
 
@@ -218,97 +240,13 @@ ggplot(data = model_odds_ratios, aes(x = term, y = estimate)) +
 
 From this initial visualization, none of the 95% confidence intervals for our predictor coefficients included 1, suggesting that they were all statistically significant. While we had a couple predictors whose confidence intervals were close to 1, we decided to still keep them in the model as day_published_Thursday is one of the factors of the day_published variable, and thus it's acceptable that some of the levels for day_published were not necessarily significant because the other levels were. To add, we decided to keep log(n_tokens_content) as we both saw a possible interaction effect in the earlier EDA and we felt that it was at least a valuable predictor to consider in our model.
 
-```{r}
-#| label: plot-roc-curve 
-pred_prob <- predict.glm(logistic_model, type = "response")
 
-model_aug <- augment(logistic_model)
-
-model_aug <- model_aug |>
-  mutate(is_viral = as.factor(is_viral))
-
-model_aug <- model_aug |>
-  bind_cols(pred_prob = pred_prob)
-# calculate sensitivity and specificity at each threshold
-roc_curve_data <- model_aug |>
-roc_curve(is_viral, pred_prob,
-event_level = "second")
-# plot roc curve
-autoplot(roc_curve_data)
-
-```
-
-```{r}
-#| label: original-auc 
-
-auc_original <- roc_auc(
-  data = model_aug, 
-  truth = is_viral, 
-  pred_prob,
-  event_level = "second"
-)
-
-auc_original
-```
-
-From the ROC curve, we estimated that the best threshold for our model would be when sensitivity was about 0.65. Thus, we found the closest point on the ROC curve to sensitivity = 0.65, which we found to be when threshold = 0.492. Using this calculation, we were then able to predict the virality categorization for each observation and generate our confusion matrix, as shown below.
-
-```{r}
-#| label: select-threshold
-
-target_sensitivity <- 0.65
-
-closest_point <- roc_curve_data |>
-  mutate(diff = abs(sensitivity - target_sensitivity)) |>
-  arrange(diff) |> 
-  slice(1)
-
-closest_point$.threshold
-
-```
-
-```{r}
-#| label: confusion-matrix
-
-log_odds <- predict(logistic_model, newsdf)
-newsdf <- newsdf |>
-  bind_cols(log_odds = log_odds)
-newsdf <- newsdf |>
-  mutate(
-    predict_prob = exp(log_odds) / (1 + exp(log_odds))
-  )
-
-newsdf <- newsdf |>
-  mutate(
-    estimateVirality = case_when(
-      predict_prob < 0.4916522 ~ 0,
-      predict_prob > 0.4916522 ~ 1,
-      TRUE ~ NA_real_  
-    )
-  )
-
-newsdf <- newsdf |> 
-  mutate(
-         estimateVirality = as.factor(estimateVirality),
-         is_viral = as.factor(is_viral)
-         )
-
-model_conf <- newsdf |>
-  conf_mat(is_viral,estimateVirality)
-
-autoplot(model_conf, type="heatmap")
-
-```
-
-While our logistic regression model's ROC curve has an AUC of about 0.693, this is a dramatic improvement from our initial linear regression model, and thus we chose to continue using our logistic model for this data set.
-
-Next, we considered possible interaction effects we discovered in our EDA between data_channel and n_tokens_content, using a drop in deviance test.
-
+## Interaction Effects
+Next, we considered the addition of poetential interaction effects between article length and data channel, and between global subjectivity and data channel.
 The hypothesis for this experiment were:
 
 $$
-H_o : B_{n-tokens-content *data-channel } = B_{global-subectivity * data-channel } =0 
-\\ H_A: B_{j} \neq0 \text{ for atleast one } j
+H_o : B_{n-tokens-content *data-channel } =0 \\ H_A: B_{n-tokens-content *data-channel } \neq0 
 $$
 
 ```{r}
@@ -355,7 +293,143 @@ knitr::kable(deviance_table,
 
 ```
 
-For our drop in deviance test, the p-value is very low, at around 0. This indicates that the data provides sufficient evidence that at-least one of the newly added interaction terms is a statistically significant predictor in whether an article will go viral or not, after accounting for data channel, day published, global subjectivity, title sentiment polarity, average key word popularity, and main body length for a given article. Therefore, we will add the interaction effects to our model.
+
+Examining the output of the  deviance test, the p-value is very low, at around 0.
+This indicates that the data provides sufficient evidence that at-least one of the newly added interaction terms is a statistically significant predictor in whether an article will go viral or not, after accounting for data channel, day published, global subjectivity, title sentiment polarity, average key word popularity, and main body length for a given article. Therefore, we will keep the interaction effects in the final model.
+
+## Model Evaluation and Comparison
+
+```{r}
+#| label: model-evaluation
+#| fig.width: 10
+#| fig.height: 5
+
+# Function to prepare ROC data
+prepare_roc_data <- function(model, data, model_name) {
+  # Generate predicted probabilities
+  probs <- predict(model, type = "response")
+  
+  # Augment model with predictions
+  aug_data <- augment(model) |>
+    mutate(
+      is_viral = as.factor(.data$is_viral),
+      probability = probs,
+      model = model_name
+    )
+  
+  return(aug_data)
+}
+
+# Prepare data for both models
+aug_null <- prepare_roc_data(nullMod, newsdf, "Initial Model")
+aug_interact <- prepare_roc_data(interactsMod, newsdf, "Interaction Model")
+
+# Combine data for comparison
+combined_aug <- bind_rows(aug_null, aug_interact)
+
+# Generate ROC curves
+roc_data <- combined_aug |>
+  group_by(model) |>
+  roc_curve(is_viral, probability, event_level = "second")
+
+# Calculate AUC values
+# Calculate AUC for each model separately to avoid group_by issues
+auc_null <- roc_auc(
+  data = filter(combined_aug, model == "Initial Model"),
+  truth = is_viral,
+  probability,
+  event_level = "second"
+)
+
+auc_interact <- roc_auc(
+  data = filter(combined_aug, model == "Interaction Model"),
+  truth = is_viral,
+  probability,
+  event_level = "second"
+)
+
+# Combine AUC values
+auc_values <- bind_rows(
+  mutate(auc_null, model = "Initial Model"),
+  mutate(auc_interact, model = "Interaction Model")
+)
+
+# Create separate ROC curve plots and arrange them in a grid
+# Generate ROC data for each model separately
+roc_data_null <- aug_null |>
+  roc_curve(is_viral, probability, event_level = "second")
+
+roc_data_interact <- aug_interact |>
+  roc_curve(is_viral, probability, event_level = "second")
+
+# Plot for Initial Model
+plot_null <- ggplot(roc_data_null, aes(x = 1 - specificity, y = sensitivity)) +
+  geom_line(size = 1.2, color = "#E41A1C") +
+  geom_abline(lty = 2, alpha = 0.5, slope = 1, intercept = 0) +
+  coord_equal() +
+  labs(
+    title = "Initial Model",
+    subtitle = paste("AUC =", round(filter(auc_values, model == "Initial Model")$.estimate, 4)),
+    x = "False Positive Rate (1 - Specificity)",
+    y = "True Positive Rate (Sensitivity)"
+  ) +
+  theme_minimal()
+
+# Plot for Interaction Model
+plot_interact <- ggplot(roc_data_interact, aes(x = 1 - specificity, y = sensitivity)) +
+  geom_line(size = 1.2, color = "#4DAF4A") +
+  geom_abline(lty = 2, alpha = 0.5, slope = 1, intercept = 0) +
+  coord_equal() +
+  labs(
+    title = "Interaction Model",
+    subtitle = paste("AUC =", round(filter(auc_values, model == "Interaction Model")$.estimate, 4)),
+    x = "False Positive Rate (1 - Specificity)",
+    y = "True Positive Rate (Sensitivity)"
+  ) +
+  theme_minimal()
+
+# Arrange plots side by side using gridExtra
+library(gridExtra)
+grid.arrange(plot_null, plot_interact, 
+             ncol = 2,
+             top = "ROC Curves Comparison")
+
+# Display AUC values
+kable(auc_values, 
+      caption = "AUC Values for Both Models",
+      digits = 4)
+```
+
+
+
+
+From the ROC curves, we can see that 
+ 1) Both models have an ROC curve above the random threshold, approaching the top left corner, indicating some predictive power in classifying an article
+ 2) The  Interaction Model (AUC = 0.6902) demonstrates marginally better predictive performance than the Initial Model (AUC = 0.681), confirming our belief that the interaction effects are meaningful predictors.
+ 3) Based on the curve, the optimal threshold for our model should target  sensitivity ~ 0.65. 
+ 
+Selecting the point closest to the ROC curve to sensitivity 0.65 yields a threshold of approximately 0.464.
+
+```{r}
+#| label: threshold-selection
+
+target_sensitivity <- 0.65
+
+#interation model only
+roc_data_int <- aug_interact |>
+  roc_curve(is_viral, probability, event_level = "second")
+
+closest_point <- roc_data_int |>
+  mutate(diff = abs(sensitivity - target_sensitivity)) |>
+  arrange(diff) |> 
+  slice(1)
+
+# Display selected threshold
+optimal_threshold <- closest_point$.threshold
+cat("Optimal threshold for classification:", round(optimal_threshold, 3))
+```
+
+
 
 Model Performance
 
@@ -492,6 +566,38 @@ While our initial set of “article sentiment” variables had relatively low pr
 Finally, while statistically important to the model, article length and keyword popularity have relatively small coefficients, making them less important to practical cases.
 
 ### **Appendix**
+```{r}
+#| label: confusion-matrix
+
+log_odds <- predict(logistic_model, newsdf)
+newsdf <- newsdf |>
+  bind_cols(log_odds = log_odds)
+newsdf <- newsdf |>
+  mutate(
+    predict_prob = exp(log_odds) / (1 + exp(log_odds))
+  )
+
+newsdf <- newsdf |>
+  mutate(
+    estimateVirality = case_when(
+      predict_prob < 0.4916522 ~ 0,
+      predict_prob > 0.4916522 ~ 1,
+      TRUE ~ NA_real_  
+    )
+  )
+
+newsdf <- newsdf |> 
+  mutate(
+         estimateVirality = as.factor(estimateVirality),
+         is_viral = as.factor(is_viral)
+         )
+
+model_conf <- newsdf |>
+  conf_mat(is_viral,estimateVirality)
+
+autoplot(model_conf, type="heatmap")
+
+```
 
 **Exploratory Data Analysis:**
 
