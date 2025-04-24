@@ -20,6 +20,7 @@ library(ggplot2)
 library(dplyr)
 library(gridExtra)
 library(knitr)
+install.packages("gridExtra")
 if (!requireNamespace("car", quietly = TRUE)) {
   install.packages("car")
 }
@@ -60,40 +61,102 @@ In this report we will investigate the effects of different article features on 
 
 **global_subjectivity** - Measures the overall subjectivity of the article text. Values range from 0.0 (completely objective) to 1.0 (completely subjective), with a mean of 0.4434 and standard deviation of 0.1167. This quantifies how opinion-based versus fact-based the content is.
 
-### **Key EDA**
+### **Univariate Exploratory Data Analysis**
 
-Response Variable - our initial EDA of the response variable revealed that it had a heavily right skewed, unimodal distribution. Thus, we imposed a log transformation, which was more symmetric and normally distributed.
+To understand our response and predictor variables more deeply, we first looked at their individual distributions. We found that while some variables are relatively approximately symmetric, others are heavily skewed and required log transformations to better meet modeling assumptions.
 
 ```{r}
-#| label: initial-response 
+install.packages("gridExtra")
+p1 <- ggplot(newsdf, aes(x = title_sentiment_polarity)) +
+  geom_histogram(fill = "blue", color = "black", alpha = 0.7) +
+   labs(title = "Distribution of Title Sentiment",
+       x = "Title Sentiment Score",
+       y = "Count of Articles") +
+  theme_minimal()
 
-ggplot(newsdf, aes(x = shares)) +
+p2 <- ggplot(newsdf, aes(x = global_subjectivity)) +
+  geom_histogram(fill = "blue", color = "black", alpha = 0.7) +
+   labs(title = "Distribution of Article Subjectivity",
+       x = "Subjectivity Score",
+       y = "Count of Articles") +
+  theme_minimal()
+
+grid.arrange(p1, p2, ncol = 2)
+```
+
+The title_sentiment_polarity variable quantifies the emotional change of article titles. The distribtuion suggests that many titles are emotionally neutral. The global_subjectivity variable is rougly symmetric with its distribution suggesting that most articles contained a balanced mix of factual and opinion-based langugue. Both global_subjectivity and title_sentiment_popularity display relatively balanced distributions that do not require transformation.
+
+```{r}
+p3 <- ggplot(newsdf, aes(x = kw_avg_avg)) +
+  geom_histogram(binwidth = 500, fill = "blue", color = "black", alpha = 0.7) +
+   labs(title = "Dist. of Keyword Popularity",
+       subtitle = "Average shares of average keywords",
+       x = "Avg. Shares of Avg. Keywords",
+       y = "Count of Articles") +
+  theme_minimal()
+
+p4 <- ggplot(newsdf, aes(x = log(kw_avg_avg))) +  
+  geom_histogram(fill = "purple", color = "black", alpha = 0.7) +
+  labs(title = "Dist. of Keyword Popularity (Log-Trans.)",
+       x = "Keyword Popularity (Log-Trans.)",
+       y = "Count of Articles") +
+  theme_minimal()
+
+grid.arrange(p3, p4, ncol = 2)
+```
+
+```{r}
+p5 <- ggplot(newsdf, aes(x = n_tokens_content)) +
+  geom_histogram(fill = "blue", color = "black", alpha = 0.7) +
+   labs(title = "Dist. of Article Length",
+       x = "Word Count",
+       y = "Count of Articles") +
+  theme_minimal()
+
+p6 <- ggplot(newsdf, aes(x = log(n_tokens_content))) +  
+  geom_histogram(fill = "purple", color = "black", alpha = 0.7) +
+  labs(title = "Dist. of Article Length (Log-Trans.)",
+       x = "Word Count (Log-trans.)",
+       y = "Count of Articles")+
+  theme_minimal()
+
+grid.arrange(p5, p6, ncol = 2)
+```
+
+response
+
+```{r}
+p7 <- ggplot(newsdf, aes(x = shares)) +
   geom_histogram(binwidth = 500, fill = "blue", color = "black", alpha = 0.7) +
   scale_x_continuous(limits = c(0, 50000)) +  # Limit for better visualization
-   labs(title = "Distribution of Article Shares",
-       subtitle = "Raw Shares Count (Limited to 50,000)",
+   labs(title = "Dist. Article Popularity",
        x = "Number of Shares",
        y = "Count of Articles") +
   theme_minimal()
-```
 
-```{r}
-#| label: log-transform-response 
-
-ggplot(newsdf, aes(x = log(shares))) +  
+p8 <- ggplot(newsdf, aes(x = log(shares))) +  
   geom_histogram(binwidth = 0.2, fill = "purple", color = "black", alpha = 0.7) +
-  labs(title = "Log-Transformed Dist. of Article Shares",
-       subtitle = "More normal distribution post-transformation",
-       x = "Log(Shares)",
+  labs(title = "Dist. Article Popularity (Log-Trans.)",
+       x = "Shares (Log-trans.)",
        y = "Count of Articles")+
   theme_minimal()
+
+grid.arrange(p7, p8, ncol = 2)
 ```
 
-Key Variables - The key predictor variables we found from our initial exploration were Data Channel and Day Published, with the bivariate EDA we performed with our response variable, log(shares), shown below.
+Response Variable - our initial EDA of the response variable revealed that it had a heavily right skewed, unimodal distribution. Thus, we imposed a log transformation, which was more symmetric and normally distributed.
+
+Both `n_tokens_content` and `kw_avg_avg` displayed heavily right-skewed distributions that warranted log transformations.To correct for this skewness and reduce the influence of extreme values, we log-transformed both variables. Post-transformation, the distributions became more symmetric and centered, better aligning with modeling assumptions.
+
+The original distribution of the `shares` variable was extremely right-skewed, with the majority of articles receiving low engagement and a small number going viral. This made it difficult to model using linear approaches due to non-normal residuals and unequal variance.
+
+We applied a log transformation to address this skewness. The transformed distribution is notably more symmetric and bell-shaped, making it more appropriate for regression analysis and enabling clearer interpretation of the effects of predictor variables on article popularity.
+
+### **Data Cleaning**
 
 [Data Cleaning]{.underline}
 
-(Combining existing weekday and data_channel indicator variables into their respective categorical variables.)
+This data cleaning step restructures the dataset by converting multiple binary indicator columns into more interpretable categorical variables.
 
 ```{r}
 newsdf$day_published <- NA  # Create a new empty column
@@ -131,47 +194,110 @@ tab <- newsdf %>%
   select(url, day_published, data_channel) %>%
   head(5)
 kable(tab, caption = "Transformed Data")
-  
 ```
+
+### **Bivariate Exploratory Data Analysis**
 
 ```{r}
-#| label: distribution-day-pub
+newsdf$is_viral <- ifelse(newsdf$shares >= 1400, 1, 0)
 
-news_summary <- newsdf |>
-  group_by(day_published) |> 
-  summarize(mean_shares = mean(shares)) 
+p9 <- newsdf |>
+  group_by(data_channel, is_viral) |>
+  summarise(n = n()) |>
+  mutate(prop = n / sum(n)) |> 
+  ggplot(aes(x = data_channel, y = prop, fill = factor(is_viral))) +
+  geom_col(position = "fill") +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Proportion of Viral Articles by Data Channel",
+       x = "Data Channel", y = "Proportion",
+       fill = "Is Viral") +
+  theme_minimal()
 
-head(news_summary)
-news_summary|>
-  ggplot(aes(x = day_published, y = mean_shares)) +
-  geom_bar(stat = "identity", fill = "skyblue") + 
-  labs(
-    title = "Mean Article Shares by Day of Publication", 
-    subtitle = "Weekend articles tend to receive more shares",
-    x = "Day Published", 
-    y = "Mean Number of Shares",
-  ) 
+newsdf$day_published <- NA  # Create a new empty column
+
+newsdf$day_published <- case_when(
+  newsdf$weekday_is_monday == 1 ~ "Monday",
+  newsdf$weekday_is_tuesday == 1 ~ "Tuesday",
+  newsdf$weekday_is_wednesday == 1 ~ "Wednesday",
+  newsdf$weekday_is_thursday == 1 ~ "Thursday",
+  newsdf$weekday_is_friday == 1 ~ "Friday",
+  newsdf$weekday_is_saturday == 1 ~ "Saturday",
+  newsdf$weekday_is_sunday == 1 ~ "Sunday",
+)
+
+newsdf$day_published <- factor(
+  newsdf$day_published,
+  levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+)
+
+p10 <- newsdf |>
+  group_by(day_published, is_viral) |>
+  summarise(n = n(), .groups = "drop") |>
+  group_by(day_published) |>
+  mutate(prop = n / sum(n)) |>
+  ggplot(aes(x = day_published, y = prop, fill = factor(is_viral))) +
+  geom_col(position = "fill") +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Proportion of Viral vs. Non-Viral Articles by Day Published",
+       x = "Day Published", y = "Proportion",
+       fill = "Is Viral") +
+  theme_minimal()
+
+grid.arrange(p9, p10, ncol = 2)
 ```
+
+The first graph explores how virality varies across different content categories, as captured by the data_channel variable. Article published under the Social Media category have the highest proportion of viral outcomes, with many reaching viral status, This suggest that content tailored for or about social platforms may be particularly good for engagement. Articles that are categoized under Technology and Business also show strong performance, with over half of the articles in each category going viral, On the other hand, articles in the Entertainment and World categories are less likely to go viral, falling below the 50% mark. This graph underscores how topic area influences content reach potentially because of the differences in audience behavior or platform algorithms.
+
+The second graph examines the relationship between the day an article is published and its likelihood of going viral. Articles published on weekends are substantially more likely to be viral compared to those published during the week. Saturday stands out with the highest porportion of viral content, followed closely by Sunday. In contrast, weekday article tend to have lower virality rates, with viral and non-viral occurring in nearly equal proportions. These findings suggest that timing plays a role in determining an article's reach, likely reflecting differences in user engagement patterns across the week.
 
 ```{r}
-#| label: data-channel-explore
+logistic_model <- glm(is_viral ~ log(kw_avg_avg + 0.0001)  + log(n_tokens_content + 0.0001) + data_channel +
+                  day_published + global_subjectivity +
+                  title_sentiment_polarity, 
+                family = binomial(link = "logit"),
+                data = newsdf)
 
-news_summary_channel <- newsdf |>
-  group_by(data_channel) |> 
-  summarize(mean_shares = mean(shares)) 
+log_odds <- predict(logistic_model, newsdf)
+newsdf <- newsdf |>
+  bind_cols(log_odds = log_odds)
+newsdf <- newsdf |>
+  mutate(
+    predict_prob = exp(log_odds) / (1 + exp(log_odds))
+  )
 
-head(news_summary_channel)
-news_summary_channel |>
-  drop_na(data_channel) |>
-  ggplot(aes(x = data_channel, y = mean_shares)) +
-  geom_bar(stat = "identity", fill = "skyblue") + 
+p11 <- ggplot(data = newsdf, aes(x = kw_avg_avg, y = log_odds)) +
+  geom_point(size = 3, color = "blue") +  # Plot empirical logits
+  geom_smooth(method = "lm", se = FALSE, color = "red") +  # Fit a line
   labs(
-    title = "Mean Article Shares by Content Category", 
-    subtitle = "Social Media articles more popular than other catagories",
-    x = "Content Category", 
-    y = "Mean Number of Shares",
-  ) 
+    title = "Empirical Logit Plot",
+    x = "Average shares of average keywords in the article",
+    y = "Empirical Logit"
+  ) +
+  theme_minimal()
+
+p12<- ggplot(data = newsdf, aes(x = global_subjectivity, y = log_odds)) +
+  geom_point(size = 3, color = "blue") +  # Plot empirical logits
+  geom_smooth(method = "lm", se = FALSE, color = "red") +  # Fit a line
+  labs(
+    title = "Empirical Logit Plot",
+    x = "Overall Subjectivity",
+    y = "Empirical Logit"
+  ) +
+  theme_minimal()
+p13<- ggplot(data = newsdf, aes(x = title_sentiment_polarity, y = log_odds)) +
+  geom_point(size = 3, color = "blue") +  # Plot empirical logits
+  geom_smooth(method = "lm", se = FALSE, color = "red") +  # Fit a line
+  labs(
+    title = "Empirical Logit Plot",
+    x = "Title's Sentiment Polarity",
+    y = "Empirical Logit"
+  ) +
+  theme_minimal()
+
+grid.arrange(p11, p12, p13, ncol = 3)
 ```
+
+The empirical logit plots offer further insight into the relationship between key predictors and the binary outcome is_viral. The plot for average shares of average keywords reveals a strong and clear positive relationship with virality. As the average popularity of an article's keywords increases, the likelihood of the article going viral rises sharply, with the empirical logit showing an upward linear trend. This suggest that keyword selection plays a key role in driving article engagement and affirms kw_avg_avg is a key predictors in modeling vitality. In contrast, the plot of overall subjectivity indicated on a slight positive relationship. Although the fitted line trends upward, the data are widely dispersed, and the effect appears weak and inconsistent, implying subjectivity alone is not a reliable driver of viral outcomes. A similar conclusion can be drawn from the plot of title sentiment polarity. While there is a marginal positive slope, suggesting that more positive titles generate a slightly greater chance of going viral, the overall relationship is weak. The plots highlight a clear distinction in predictive power among the variables and support prioritizing keyword metrics over emotional tone or subjectivity when modeling article vitality.
 
 ### Methodology
 
@@ -575,12 +701,12 @@ In Social Media articles, a fully subjective tone actually reduces the odds of v
 ```{r}
 #| label: confusion-matrix
 
-log_odds <- predict(logistic_model, newsdf)
+log_odds_2 <- predict(logistic_model, newsdf)
 newsdf <- newsdf |>
-  bind_cols(log_odds = log_odds)
+  bind_cols(log_odds_2 = log_odds_2)
 newsdf <- newsdf |>
   mutate(
-    predict_prob = exp(log_odds) / (1 + exp(log_odds))
+    predict_prob = exp(log_odds_2) / (1 + exp(log_odds_2))
   )
 
 newsdf <- newsdf |>
@@ -1100,3 +1226,42 @@ tidy(title_fit_mod) |>
 ```
 
 From this model, we found that while the data channel type at times has a statistically significant linear relationship to log(shares), specifically for Social Media, Technology, and World, the number of words in the title does not have a linear relationship to log(shares), based on their respective p-values. For instance, the p-value for n_tokens_title is 0.677, thus suggesting that there is not a statistically significant linear relationship between n_tokens_title and log(shares). However, while the number of words in the title does not have a significant linear relationship with log(shares) directly, its interaction term specifically with when the data channel is World, is significant (as shown by the p-value of 0.003).
+
+```{r}
+#| label: distribution-day-pub
+
+news_summary <- newsdf |>
+  group_by(day_published) |> 
+  summarize(mean_shares = mean(shares)) 
+
+head(news_summary)
+news_summary|>
+  ggplot(aes(x = day_published, y = mean_shares)) +
+  geom_bar(stat = "identity", fill = "skyblue") + 
+  labs(
+    title = "Mean Article Shares by Day of Publication", 
+    subtitle = "Weekend articles tend to receive more shares",
+    x = "Day Published", 
+    y = "Mean Number of Shares",
+  )
+```
+
+```{r}
+#| label: data-channel-explore
+
+news_summary_channel <- newsdf |>
+  group_by(data_channel) |> 
+  summarize(mean_shares = mean(shares)) 
+
+head(news_summary_channel)
+news_summary_channel |>
+  drop_na(data_channel) |>
+  ggplot(aes(x = data_channel, y = mean_shares)) +
+  geom_bar(stat = "identity", fill = "skyblue") + 
+  labs(
+    title = "Mean Article Shares by Content Category", 
+    subtitle = "Social Media articles more popular than other catagories",
+    x = "Content Category", 
+    y = "Mean Number of Shares",
+  ) 
+```
