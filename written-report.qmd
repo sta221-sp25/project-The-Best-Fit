@@ -43,15 +43,9 @@ In this report we will investigate the effects of different article features on 
 
 **Key Variables:** 
 
-**rate_positive_words** - Rate of positive words among non-neutral tokens in the article content. Values range from 0.0 to 1.0, with a mean of 0.6822 and standard deviation of 0.1902. This metric captures the positive emotional tone of the article.
-
-**Rate_negative_words** - Rate of negative words among non-neutral tokens in the article content. Values range from 0.0 to 1.0, with a mean of 0.2879 and standard deviation of 0.1562. This metric captures the negative emotional tone of the article.
-
 **title_sentiment_polarity** - Measure of the title's sentiment polarity (positivity/negativity). Values range from -1.0 (extremely negative) to 1.0 (extremely positive), with a mean of 0.0714 and standard deviation of 0.2654. This indicates how emotionally charged article titles are.
 
 **n_tokens_content** - Number of words in the article content. Values range from 0 to 8,474 words, with a mean of 546.51 and standard deviation of 471.10. This quantifies the overall length of the article.
-
-**n_tokens_title** - Number of words in the article title. Values range from 2 to 23 words, with a mean of 10.40 and standard deviation of 2.11. This measures length of headlines.
 
 **data_channel** - Categorical variable denoting article topic, merged from indicators: data_channel_is_lifestyle, data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, and data_channel_is_world. This classifies content by subject area.
 
@@ -113,8 +107,6 @@ p6 <- ggplot(newsdf, aes(x = log(n_tokens_content))) +
 
 grid.arrange(p5, p6, ncol = 2)
 ```
-
-response
 
 ```{r}
 p7 <- ggplot(newsdf, aes(x = shares)) +
@@ -180,6 +172,10 @@ newsdf$data_channel <- case_when(
 
 newsdf$data_channel <- factor(newsdf$data_channel)
 
+newsdf <- newsdf |>
+  mutate(
+    log_n_tokens = log(n_tokens_content)
+  )
 
 tab <- newsdf %>%
   select(url, day_published, data_channel) %>%
