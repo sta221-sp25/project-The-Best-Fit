@@ -69,14 +69,14 @@ To understand our response and predictor variables more deeply, we first looked 
 install.packages("gridExtra")
 p1 <- ggplot(newsdf, aes(x = title_sentiment_polarity)) +
   geom_histogram(fill = "blue", color = "black", alpha = 0.7) +
-   labs(title = "Distribution of Title Sentiment",
+   labs(title = "Dist. of Title Sentiment",
        x = "Title Sentiment Score",
        y = "Count of Articles") +
   theme_minimal()
 
 p2 <- ggplot(newsdf, aes(x = global_subjectivity)) +
   geom_histogram(fill = "blue", color = "black", alpha = 0.7) +
-   labs(title = "Distribution of Article Subjectivity",
+   labs(title = "Dist. of Article Subjectivity",
        x = "Subjectivity Score",
        y = "Count of Articles") +
   theme_minimal()
@@ -84,25 +84,16 @@ p2 <- ggplot(newsdf, aes(x = global_subjectivity)) +
 grid.arrange(p1, p2, ncol = 2)
 ```
 
-The title_sentiment_polarity variable quantifies the emotional change of article titles. The distribtuion suggests that many titles are emotionally neutral. The global_subjectivity variable is rougly symmetric with its distribution suggesting that most articles contained a balanced mix of factual and opinion-based langugue. Both global_subjectivity and title_sentiment_popularity display relatively balanced distributions that do not require transformation.
+The title_sentiment_polarity variable quantifies the emotional change of article titles. The distribtuion suggests that many titles are emotionally neutral. The global_subjectivity variable is rougly symmetric with its distribution suggesting that most articles contained a balanced mix of factual and opinion-based language. Both global_subjectivity and title_sentiment_popularity display relatively balanced distributions that do not require transformation.
 
 ```{r}
-p3 <- ggplot(newsdf, aes(x = kw_avg_avg)) +
+ggplot(newsdf, aes(x = kw_avg_avg)) +
   geom_histogram(binwidth = 500, fill = "blue", color = "black", alpha = 0.7) +
    labs(title = "Dist. of Keyword Popularity",
        subtitle = "Average shares of average keywords",
        x = "Avg. Shares of Avg. Keywords",
        y = "Count of Articles") +
   theme_minimal()
-
-p4 <- ggplot(newsdf, aes(x = log(kw_avg_avg))) +  
-  geom_histogram(fill = "purple", color = "black", alpha = 0.7) +
-  labs(title = "Dist. of Keyword Popularity (Log-Trans.)",
-       x = "Keyword Popularity (Log-Trans.)",
-       y = "Count of Articles") +
-  theme_minimal()
-
-grid.arrange(p3, p4, ncol = 2)
 ```
 
 ```{r}
@@ -201,7 +192,7 @@ kable(tab, caption = "Transformed Data")
 ```{r}
 newsdf$is_viral <- ifelse(newsdf$shares >= 1400, 1, 0)
 
-p9 <- newsdf |>
+newsdf |>
   group_by(data_channel, is_viral) |>
   summarise(n = n()) |>
   mutate(prop = n / sum(n)) |> 
@@ -211,6 +202,7 @@ p9 <- newsdf |>
   labs(title = "Proportion of Viral Articles by Data Channel",
        x = "Data Channel", y = "Proportion",
        fill = "Is Viral") +
+  coord_flip() +
   theme_minimal()
 
 newsdf$day_published <- NA  # Create a new empty column
@@ -230,7 +222,7 @@ newsdf$day_published <- factor(
   levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 )
 
-p10 <- newsdf |>
+newsdf |>
   group_by(day_published, is_viral) |>
   summarise(n = n(), .groups = "drop") |>
   group_by(day_published) |>
@@ -241,9 +233,9 @@ p10 <- newsdf |>
   labs(title = "Proportion of Viral vs. Non-Viral Articles by Day Published",
        x = "Day Published", y = "Proportion",
        fill = "Is Viral") +
+  coord_flip() +
   theme_minimal()
 
-grid.arrange(p9, p10, ncol = 2)
 ```
 
 The first graph explores how virality varies across different content categories, as captured by the data_channel variable. Article published under the Social Media category have the highest proportion of viral outcomes, with many reaching viral status, This suggest that content tailored for or about social platforms may be particularly good for engagement. Articles that are categoized under Technology and Business also show strong performance, with over half of the articles in each category going viral, On the other hand, articles in the Entertainment and World categories are less likely to go viral, falling below the 50% mark. This graph underscores how topic area influences content reach potentially because of the differences in audience behavior or platform algorithms.
@@ -266,15 +258,14 @@ newsdf <- newsdf |>
   )
 
 p11 <- ggplot(data = newsdf, aes(x = kw_avg_avg, y = log_odds)) +
-  geom_point(size = 3, color = "blue") +  # Plot empirical logits
-  geom_smooth(method = "lm", se = FALSE, color = "red") +  # Fit a line
+  geom_point(size = 3, color = "blue") +  
+  geom_smooth(method = "lm", se = FALSE, color = "red") +  
   labs(
     title = "Empirical Logit Plot",
-    x = "Average shares of average keywords in the article",
+    x = "Keyword Popularity",
     y = "Empirical Logit"
   ) +
   theme_minimal()
-
 p12<- ggplot(data = newsdf, aes(x = global_subjectivity, y = log_odds)) +
   geom_point(size = 3, color = "blue") +  # Plot empirical logits
   geom_smooth(method = "lm", se = FALSE, color = "red") +  # Fit a line
@@ -297,7 +288,7 @@ p13<- ggplot(data = newsdf, aes(x = title_sentiment_polarity, y = log_odds)) +
 grid.arrange(p11, p12, p13, ncol = 3)
 ```
 
-The empirical logit plots offer further insight into the relationship between key predictors and the binary outcome is_viral. The plot for average shares of average keywords reveals a strong and clear positive relationship with virality. As the average popularity of an article's keywords increases, the likelihood of the article going viral rises sharply, with the empirical logit showing an upward linear trend. This suggest that keyword selection plays a key role in driving article engagement and affirms kw_avg_avg is a key predictors in modeling vitality. In contrast, the plot of overall subjectivity indicated on a slight positive relationship. Although the fitted line trends upward, the data are widely dispersed, and the effect appears weak and inconsistent, implying subjectivity alone is not a reliable driver of viral outcomes. A similar conclusion can be drawn from the plot of title sentiment polarity. While there is a marginal positive slope, suggesting that more positive titles generate a slightly greater chance of going viral, the overall relationship is weak. The plots highlight a clear distinction in predictive power among the variables and support prioritizing keyword metrics over emotional tone or subjectivity when modeling article vitality.
+The empirical logit plots offer further insight into the relationship between key predictors and the binary outcome is_viral. The plot for average shares of average keywords reveals a positive relationship with virality. As the average popularity of an article's keywords increases, the likelihood of the article going viral rises sharply, with the empirical logit showing an upward linear trend. This suggest that keyword selection plays a key role in driving article engagement and affirms kw_avg_avg is a key predictors in modeling vitality. In contrast, the plot of overall subjectivity indicated on a slight positive relationship. Although the fitted line trends upward, the data are widely dispersed, and the effect appears weak and inconsistent, implying subjectivity alone is not a reliable driver of viral outcomes. A similar conclusion can be drawn from the plot of title sentiment polarity. While there is a marginal positive slope, suggesting that more positive titles generate a slightly greater chance of going viral, the overall relationship is weak. The plots highlight a clear distinction in predictive power among the variables and support prioritizing keyword metrics over emotional tone or subjectivity when modeling article vitality.
 
 ### Methodology
 
