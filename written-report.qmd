@@ -29,19 +29,19 @@ library(car)
 newsdf <- read_csv("data/OnlineNewsPopularity.csv")
 ```
 
-### **Introduction and Data**
+## **Introduction and Data**
 
-[**Project Motivation and Research Question**]{.underline}
+#### [**Project Motivation and Research Question**]{.underline}
 
 The ways in which people interact with media and discover news have dramatically shifted in recent years, with social media often displacing traditional news outlets. The decentralized nature of social media means the reach of each article is largely dependent on its individual merits, rather than the popularity of the publication it belongs to.
 
 Thus a question arises: What article attributes are associated with social media virality?
 
-[**Dataset and Key Variables**]{.underline}
+#### [**Dataset and Key Variables**]{.underline}
 
-In this report we will investigate the effects of different article features on social media success using the University of California Irvine Machine Learning Repository’s “Online News Popularity” data set. It includes share counts and descriptive characteristics for articles published by Mashable, a digital media website, over two years (from 2013 to 2015). The data has 39,644 entries in total, with each repsenting an individual article and its associated textual and metadata features.
+In this report we investigate the effects of different article features on social media success using the University of California Irvine Machine Learning Repository’s “Online News Popularity” data set. It includes share counts and descriptive characteristics for articles published by Mashable, a digital media website, over two years (from 2013 to 2015). The data has 39,644 entries in total, with each repsenting an individual article and its associated textual and metadata features.
 
-**Key Variables:** 
+**Key Variables:**
 
 **is_viral** - Binary response variable created that evaluates whether an article is considered viral or not, based off of whether total shares is greater/less than 1,400 \[INSERT CITATION HERE\] (0: FALSE, 1: TRUE).
 
@@ -57,11 +57,500 @@ In this report we will investigate the effects of different article features on 
 
 **global_subjectivity** - Measures the overall subjectivity of the article text. Values range from 0.0 (completely objective) to 1.0 (completely subjective), with a mean of 0.4434 and standard deviation of 0.1167. This quantifies how opinion-based versus fact-based the content is.
 
-[**Univariate EDA**]{.underline}
+#### [**Univariate EDA**]{.underline}
+
+To understand our response and predictor variables more deeply, we first looked at their individual distributions. We found that while some variables are relatively approximately symmetric, others are heavily skewed and required log transformations to better meet modeling assumptions.
+
+```{r}
+#| label: sentiment-subjectivity-visuals
+
+install.packages("gridExtra")
+p1 <- ggplot(newsdf, aes(x = title_sentiment_polarity)) +
+  geom_histogram(fill = "blue", color = "black", alpha = 0.7) +
+   labs(title = "Dist. of Title Sentiment",
+       x = "Title Sentiment Score",
+       y = "Count of Articles") +
+  theme_minimal()
+
+p2 <- ggplot(newsdf, aes(x = global_subjectivity)) +
+  geom_histogram(fill = "blue", color = "black", alpha = 0.7) +
+   labs(title = "Dist. of Article Subjectivity",
+       x = "Subjectivity Score",
+       y = "Count of Articles") +
+  theme_minimal()
+
+grid.arrange(p1, p2, ncol = 2)
+```
+
+The title_sentiment_polarity variable quantifies the emotional change of article titles. The distribtuion suggests that many titles are emotionally neutral. The global_subjectivity variable is rougly symmetric with its distribution suggesting that most articles contained a balanced mix of factual and opinion-based language. Both global_subjectivity and title_sentiment_popularity display relatively balanced distributions that do not require transformation.
+
+```{r}
+#| label: avg-keyword-visual 
+
+ggplot(newsdf, aes(x = kw_avg_avg)) +
+  geom_histogram(binwidth = 500, fill = "blue", color = "black", alpha = 0.7) +
+   labs(title = "Dist. of Keyword Popularity",
+       subtitle = "Average shares of average keywords",
+       x = "Avg. Shares of Avg. Keywords",
+       y = "Count of Articles") +
+  theme_minimal()
+```
+
+```{r}
+#| label: length-visual 
+
+p5 <- ggplot(newsdf, aes(x = n_tokens_content)) +
+  geom_histogram(fill = "blue", color = "black", alpha = 0.7) +
+   labs(title = "Dist. of Article Length",
+       x = "Word Count",
+       y = "Count of Articles") +
+  theme_minimal()
+
+p6 <- ggplot(newsdf, aes(x = log(n_tokens_content))) +  
+  geom_histogram(fill = "purple", color = "black", alpha = 0.7) +
+  labs(title = "Dist. of Article Length (Log-Trans.)",
+       x = "Word Count (Log-trans.)",
+       y = "Count of Articles")+
+  theme_minimal()
+
+grid.arrange(p5, p6, ncol = 2)
+```
+
+Both `n_tokens_content` and `kw_avg_avg` displayed heavily right-skewed distributions that warranted log transformations.To correct for this skewness and reduce the influence of extreme values, we log-transformed both variables. Post-transformation, the distributions became more symmetric and centered, better aligning with modeling assumptions.
 
 [**Bivariate EDA**]{.underline}
 
-### **Methodology** 
+```{r}
+#| label: data-channel-day-pub
+newsdf$is_viral <- ifelse(newsdf$shares >= 1400, 1, 0)
+
+newsdf$data_channel <- NA
+
+newsdf$data_channel <- case_when(
+  newsdf$data_channel_is_entertainment == 1 ~ "Entertainment",
+  newsdf$data_channel_is_bus == 1 ~ "Business",
+  newsdf$data_channel_is_socmed == 1 ~ "Social Media",
+  newsdf$data_channel_is_tech == 1 ~ "Technology",
+  newsdf$data_channel_is_world == 1 ~ "World",
+)
+
+newsdf$data_channel <- factor(newsdf$data_channel)
+
+newsdf |>
+  group_by(data_channel, is_viral) |>
+  summarise(n = n()) |>
+  mutate(prop = n / sum(n)) |> 
+  ggplot(aes(x = data_channel, y = prop, fill = factor(is_viral))) +
+  geom_col(position = "fill") +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Proportion of Viral Articles by Data Channel",
+       x = "Data Channel", y = "Proportion",
+       fill = "Is Viral") +
+  coord_flip() +
+  theme_minimal()
+
+newsdf$day_published <- NA  # Create a new empty column
+
+newsdf$day_published <- case_when(
+  newsdf$weekday_is_monday == 1 ~ "Monday",
+  newsdf$weekday_is_tuesday == 1 ~ "Tuesday",
+  newsdf$weekday_is_wednesday == 1 ~ "Wednesday",
+  newsdf$weekday_is_thursday == 1 ~ "Thursday",
+  newsdf$weekday_is_friday == 1 ~ "Friday",
+  newsdf$weekday_is_saturday == 1 ~ "Saturday",
+  newsdf$weekday_is_sunday == 1 ~ "Sunday",
+)
+
+newsdf$day_published <- factor(
+  newsdf$day_published,
+  levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+)
+
+newsdf |>
+  group_by(day_published, is_viral) |>
+  summarise(n = n(), .groups = "drop") |>
+  group_by(day_published) |>
+  mutate(prop = n / sum(n)) |>
+  ggplot(aes(x = day_published, y = prop, fill = factor(is_viral))) +
+  geom_col(position = "fill") +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Proportion of Viral vs. Non-Viral Articles by Day Published",
+       x = "Day Published", y = "Proportion",
+       fill = "Is Viral") +
+  coord_flip() +
+  theme_minimal()
+
+```
+
+The first graph explores how virality varies across different content categories, as captured by the data_channel variable. Article published under the Social Media category have the highest proportion of viral outcomes, with many reaching viral status, This suggest that content tailored for or about social platforms may be particularly good for engagement. Articles that are categoized under Technology and Business also show strong performance, with over half of the articles in each category going viral, On the other hand, articles in the Entertainment and World categories are less likely to go viral, falling below the 50% mark. This graph underscores how topic area influences content reach potentially because of the differences in audience behavior or platform algorithms.
+
+The second graph examines the relationship between the day an article is published and its likelihood of going viral. Articles published on weekends are substantially more likely to be viral compared to those published during the week. Saturday stands out with the highest porportion of viral content, followed closely by Sunday. In contrast, weekday article tend to have lower virality rates, with viral and non-viral occurring in nearly equal proportions. These findings suggest that timing plays a role in determining an article's reach, likely reflecting differences in user engagement patterns across the week.
+
+```{r}
+#| label: emp-logit 
+
+logistic_model <- glm(is_viral ~ kw_avg_avg + 
+                        log(n_tokens_content + 0.0001) + 
+                        data_channel +
+                        day_published + 
+                        global_subjectivity +
+                        title_sentiment_polarity, 
+                      family = binomial(link = "logit"),
+                      data = newsdf)
+
+log_odds <- predict(logistic_model, newsdf)
+newsdf <- newsdf |>
+  bind_cols(log_odds = log_odds)
+newsdf <- newsdf |>
+  mutate(
+    predict_prob = exp(log_odds) / (1 + exp(log_odds))
+  )
+
+p11 <- ggplot(data = newsdf, aes(x = kw_avg_avg, y = log_odds)) +
+  geom_point(size = 3, color = "blue") +  
+  geom_smooth(method = "lm", se = FALSE, color = "red") +  
+  labs(
+    title = "Empirical Logit Plot",
+    x = "Keyword Popularity",
+    y = "Empirical Logit"
+  ) +
+  theme_minimal()
+p12<- ggplot(data = newsdf, aes(x = global_subjectivity, y = log_odds)) +
+  geom_point(size = 3, color = "blue") +  # Plot empirical logits
+  geom_smooth(method = "lm", se = FALSE, color = "red") +  # Fit a line
+  labs(
+    title = "Empirical Logit Plot",
+    x = "Overall Subjectivity",
+    y = "Empirical Logit"
+  ) +
+  theme_minimal()
+p13<- ggplot(data = newsdf, aes(x = title_sentiment_polarity, y = log_odds)) +
+  geom_point(size = 3, color = "blue") +  # Plot empirical logits
+  geom_smooth(method = "lm", se = FALSE, color = "red") +  # Fit a line
+  labs(
+    title = "Empirical Logit Plot",
+    x = "Title's Sentiment Polarity",
+    y = "Empirical Logit"
+  ) +
+  theme_minimal()
+
+grid.arrange(p11, p12, p13, ncol = 3)
+```
+
+The empirical logit plots offer further insight into the relationship between key predictors and the binary outcome is_viral. The plot for average shares of average keywords reveals a positive relationship with virality. As the average popularity of an article's keywords increases, the likelihood of the article going viral rises sharply, with the empirical logit showing an upward linear trend. This suggest that keyword selection plays a key role in driving article engagement and affirms kw_avg_avg is a key predictors in modeling vitality. In contrast, the plot of overall subjectivity indicated on a slight positive relationship. Although the fitted line trends upward, the data are widely dispersed, and the effect appears weak and inconsistent, implying subjectivity alone is not a reliable driver of viral outcomes. A similar conclusion can be drawn from the plot of title sentiment polarity. While there is a marginal positive slope, suggesting that more positive titles generate a slightly greater chance of going viral, the overall relationship is weak. The plots highlight a clear distinction in predictive power among the variables and support prioritizing keyword metrics over emotional tone or subjectivity when modeling article vitality.
+
+### **Methodology**
+
+Based on our initial EDA and empirical logit visualization, we selected data channel, day published, article subjectivity, title sentiment polarity, average keyword popularity, and (log) article content length to fit an initial logistic model. Our model attributes are shown below:
+
+```{r}
+#| label: initial-model 
+
+logistic_model <- glm(is_viral ~ kw_avg_avg +
+                        log(n_tokens_content + 0.0001) +
+                        data_channel +
+                        day_published + 
+                        global_subjectivity +
+                        title_sentiment_polarity, 
+                family = binomial(link = "logit"),
+                data = newsdf)
+
+tidy(logistic_model) |>
+  mutate(
+    estimate = round(estimate, 4),
+    std.error = round(std.error, 4),
+    statistic = round(statistic, 4),
+    p.value = round(p.value, 4)
+  ) %>%
+  kable(digits = 4, align = "lrrrr",
+        col.names = c("Term", "Estimate", "Std.Error", "z-statistic", "p-value"))
+
+```
+
+Our initial fit gives all of the predictors significant p-values (p\<0.05) and most predictors relatively high magnitude z-statistics, indicating that all variables in the model have statistically significant relationships with the likelihood of content going viral.
+
+#### Coefficient Analysis
+
+When fitting our initial model, we also visualized the adjusted odds ratios to ensure that all predictors were statistically significant.
+
+```{r}
+#| label: coeff-estimates 
+
+model_odds_ratios <- tidy(logistic_model, exponentiate = TRUE, conf.int = TRUE)
+
+ggplot(data = model_odds_ratios, aes(x = term, y = estimate)) +
+  geom_point() +
+  geom_hline(yintercept = 1, lty = 2) + 
+  geom_pointrange(aes(ymin = conf.low, ymax = conf.high))+
+  labs(title = "Adjusted odds ratios",
+       x = "",
+       y = "Estimated AOR") +
+  coord_flip()
+```
+
+From this initial visualization, most of the 95% confidence intervals for our predictor coefficients included 1, suggesting that the majority of our predictors added to the model. While a couple predictors (such as day_published_Thursday and log(n_tokens_content) were close to 1, we decided to still keep them in the model as they were either one level of several of a categorical variable, or because we found a possible interaction effect from the earlier EDA and felt it was at least a valuable predictor to consider in our model.
+
+#### Interaction Effects
+
+Next, we considered the addition of potential interaction effects between article length and data channel, and between global subjectivity and data channel. The hypothesis for this experiment were:
+
+$$
+H_o : B_{n-tokens-content *data-channel } = B_{global-subectivity *data-channel } = 0 \\ 
+H_A: B_{j} \neq0 \text{ for atleast one }j
+$$
+
+```{r}
+#| label: interaction-effect-eval 
+#| echo: false
+#| message: false
+#| warning: false
+
+interactsMod <- glm(is_viral ~ kw_avg_avg + 
+                      log(n_tokens_content+0.0001) + 
+                      data_channel +
+                      day_published + 
+                      global_subjectivity +
+                      title_sentiment_polarity + 
+                      log(n_tokens_content+0.0001) * data_channel + 
+                      global_subjectivity * data_channel, 
+                   family = binomial(link = "logit"),
+                   data = newsdf)
+
+# Extract log-likelihoods
+L_0 <- glance(logistic_model)$logLik
+L_a <- glance(interactsMod)$logLik
+
+# Calculate test statistic
+G <- -2 * (L_0 - L_a)
+
+# Calculate p-value
+p_value <- pchisq(G, df = 5, lower.tail = FALSE)
+
+# Create table for drop in deviance test
+deviance_table <- tibble(
+  Model = c("Null Model", "Interaction Model"),
+  `Log-Likelihood` = c(L_0, L_a),
+  `Deviance Statistic (G)` = c(NA, G),
+  df = c(NA, 5),
+  `p-value` = c(NA, p_value)
+)
+
+# Display table using knitr::kable
+knitr::kable(deviance_table, 
+             caption = "Drop in Deviance Test Results",
+             digits = c(0, 3, 3, 0, 4))
+
+```
+
+Examining the output of the deviance test, the p-value is very low, at around 0. This indicates that the data provides sufficient evidence that at-least one of the newly added interaction terms is a statistically significant predictor in whether an article will go viral or not, after accounting for data channel, day published, global subjectivity, title sentiment polarity, average key word popularity, and main body length for a given article. Therefore, we will keep the interaction effects in the final model.
+
+#### Model Evaluation and Comparison
+
+We further compared our two models through their ROC and AUCs.
+
+```{r}
+#| label: model-evaluation
+#| fig.width: 10
+#| fig.height: 5
+
+# Function to prepare ROC data
+prepare_roc_data <- function(model, data, model_name) {
+  # Generate predicted probabilities
+  probs <- predict(model, type = "response")
+  
+  # Augment model with predictions
+  aug_data <- augment(model) |>
+    mutate(
+      is_viral = as.factor(.data$is_viral),
+      probability = probs,
+      model = model_name
+    )
+  
+  return(aug_data)
+}
+
+# Prepare data for both models
+aug_null <- prepare_roc_data(logistic_model, newsdf, "Initial Model")
+aug_interact <- prepare_roc_data(interactsMod, newsdf, "Interaction Model")
+
+# Combine data for comparison
+combined_aug <- bind_rows(aug_null, aug_interact)
+
+# Generate ROC curves
+roc_data <- combined_aug |>
+  group_by(model) |>
+  roc_curve(is_viral, probability, event_level = "second")
+
+# Calculate AUC values
+# Calculate AUC for each model separately to avoid group_by issues
+auc_null <- roc_auc(
+  data = filter(combined_aug, model == "Initial Model"),
+  truth = is_viral,
+  probability,
+  event_level = "second"
+)
+
+auc_interact <- roc_auc(
+  data = filter(combined_aug, model == "Interaction Model"),
+  truth = is_viral,
+  probability,
+  event_level = "second"
+)
+
+# Combine AUC values
+auc_values <- bind_rows(
+  mutate(auc_null, model = "Initial Model"),
+  mutate(auc_interact, model = "Interaction Model")
+)
+
+# Create separate ROC curve plots and arrange them in a grid
+# Generate ROC data for each model separately
+roc_data_null <- aug_null |>
+  roc_curve(is_viral, probability, event_level = "second")
+
+roc_data_interact <- aug_interact |>
+  roc_curve(is_viral, probability, event_level = "second")
+
+# Plot for Initial Model
+plot_null <- ggplot(roc_data_null, aes(x = 1 - specificity, y = sensitivity)) +
+  geom_line(size = 1.2, color = "#E41A1C") +
+  geom_abline(lty = 2, alpha = 0.5, slope = 1, intercept = 0) +
+  coord_equal() +
+  labs(
+    title = "Initial Model",
+    subtitle = paste("AUC =", round(filter(auc_values, model == "Initial Model")$.estimate, 4)),
+    x = "False Positive Rate (1 - Specificity)",
+    y = "True Positive Rate (Sensitivity)"
+  ) +
+  theme_minimal()
+
+# Plot for Interaction Model
+plot_interact <- ggplot(roc_data_interact, aes(x = 1 - specificity, y = sensitivity)) +
+  geom_line(size = 1.2, color = "#4DAF4A") +
+  geom_abline(lty = 2, alpha = 0.5, slope = 1, intercept = 0) +
+  coord_equal() +
+  labs(
+    title = "Interaction Model",
+    subtitle = paste("AUC =", round(filter(auc_values, model == "Interaction Model")$.estimate, 4)),
+    x = "False Positive Rate (1 - Specificity)",
+    y = "True Positive Rate (Sensitivity)"
+  ) +
+  theme_minimal()
+
+# Arrange plots side by side using gridExtra
+library(gridExtra)
+grid.arrange(plot_null, plot_interact, 
+             ncol = 2,
+             top = "ROC Curves Comparison")
+
+# Display AUC values
+kable(auc_values, 
+      caption = "AUC Values for Both Models",
+      digits = 4)
+```
+
+From the ROC curves, we can see that 1) Both models have an ROC curve above the random threshold, approaching the top left corner, indicating some predictive power in classifying an article and 2) The Interaction Model (AUC = 0.6902) demonstrates marginally better predictive performance than the Initial Model (AUC = 0.681), confirming our belief that the interaction effects are meaningful predictors. 3) Based on the curve, the optimal threshold for our model should target sensitivity \~ 0.65.
+
+Selecting the point closest to the ROC curve to sensitivity 0.65 yields a threshold of approximately 0.464.
+
+```{r}
+#| label: threshold-selection
+
+target_sensitivity <- 0.65
+
+#interation model only
+roc_data_int <- aug_interact |>
+  roc_curve(is_viral, probability, event_level = "second")
+
+closest_point <- roc_data_int |>
+  mutate(diff = abs(sensitivity - target_sensitivity)) |>
+  arrange(diff) |> 
+  slice(1)
+
+# Display selected threshold
+optimal_threshold <- closest_point$.threshold
+cat("Optimal threshold for classification:", round(optimal_threshold, 3))
+```
+
+**Model Performance**
+
+```{r}
+#| label: roc-curve-interaction 
+#| echo: false
+
+# Generate predicted probabilities for ROC analysis
+prob_roc_int <- predict(interactsMod, type = "response")
+# Augment model and add probabilities
+aug_data_int <- augment(interactsMod) |>
+  mutate(
+    is_viral = as.factor(is_viral),
+    prob_roc_int = prob_roc_int
+  )
+# Generate ROC data
+roc_data_int <- aug_data_int |>
+  roc_curve(is_viral, prob_roc_int, event_level = "second")
+# Plot ROC curve
+autoplot(roc_data_int)
+
+# Calculate AUC
+auc_result_int <- roc_auc(
+  data = aug_data_int,
+  truth = is_viral,
+  prob_roc_int,
+  event_level = "second"
+)
+```
+
+```{r}
+#| label: select-threshold-interaction 
+
+target_sensitivity <- 0.65
+
+closest_point <- roc_data_int |>
+  mutate(diff = abs(sensitivity - target_sensitivity)) |>
+  arrange(diff) |> 
+  slice(1)
+
+closest_point$.threshold
+```
+
+```{r}
+#| echo: false
+#| fig.cap: "Confusion Matrix for the Interaction Model"
+
+# Predict log-odds using the interaction model
+log_odds_int <- predict(interactsMod, newdata = newsdf)
+news_eval <- newsdf |>
+  bind_cols(log_odds_int = log_odds_int)
+# Convert to predicted probabilities
+news_eval <- news_eval |>
+  mutate(
+    prob_int = exp(log_odds_int) / (1 + exp(log_odds_int))
+  )
+news_eval <- news_eval |>
+  mutate(
+    predicted_label = case_when(
+      prob_int < 0.482 ~ 0,
+      prob_int >= 0.482 ~ 1,
+      TRUE ~ NA_real_
+    ),
+    predicted_label = as.factor(predicted_label),
+    is_viral = as.factor(is_viral)
+  )
+conf_matrix_int <- news_eval |>
+  conf_mat(is_viral, predicted_label)
+autoplot(conf_matrix_int, type = "heatmap")
+```
+
+```{r}
+auc_result_int <- roc_auc(
+  data = aug_data_int,
+  truth = is_viral,
+  prob_roc_int,
+  event_level = "second"
+)
+auc_result_int
+```
 
 ## **Analysis + Peer Review**
 
@@ -345,7 +834,7 @@ $$
 \[can explain output/visualizations for log transform in appendix\]
 
 ```{r}
-#| label: log-model 
+
 
 newsdf$is_viral <- ifelse(newsdf$shares >= 1400, 1, 0)
 
@@ -374,7 +863,7 @@ Our initial fit gives all of the predictors significant p-values (p\<0.05) and m
 When fitting our model, we also visualized the adjusted odds ratios to ensure that all predictors were statistically significant.
 
 ```{r}
-#| label: coefficient-estimates 
+
 
 model_odds_ratios <- tidy(logistic_model, exponentiate = TRUE, conf.int = TRUE)
 
@@ -447,7 +936,7 @@ Examining the output of the deviance test, the p-value is very low, at around 0.
 ## Model Evaluation and Comparison
 
 ```{r}
-#| label: model-evaluation
+
 #| fig.width: 10
 #| fig.height: 5
 
@@ -552,7 +1041,7 @@ From the ROC curves, we can see that 1) Both models have an ROC curve above the 
 Selecting the point closest to the ROC curve to sensitivity 0.65 yields a threshold of approximately 0.464.
 
 ```{r}
-#| label: threshold-selection
+
 
 target_sensitivity <- 0.65
 
@@ -573,7 +1062,7 @@ cat("Optimal threshold for classification:", round(optimal_threshold, 3))
 Model Performance
 
 ```{r}
-#| label: roc-curve-interaction 
+
 #| echo: false
 
 # Generate predicted probabilities for ROC analysis
@@ -600,7 +1089,7 @@ auc_result_int <- roc_auc(
 ```
 
 ```{r}
-#| label: select-threshold-interaction 
+
 
 target_sensitivity <- 0.65
 
