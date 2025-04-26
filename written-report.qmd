@@ -85,18 +85,6 @@ grid.arrange(p1, p2, ncol = 2)
 The title_sentiment_polarity variable quantifies the emotional change of article titles. The distribtuion suggests that many titles are emotionally neutral. The global_subjectivity variable is rougly symmetric with its distribution suggesting that most articles contained a balanced mix of factual and opinion-based language. Both global_subjectivity and title_sentiment_popularity display relatively balanced distributions that do not require transformation.
 
 ```{r}
-#| label: avg-keyword-visual 
-
-ggplot(newsdf, aes(x = kw_avg_avg)) +
-  geom_histogram(binwidth = 500, fill = "blue", color = "black", alpha = 0.7) +
-   labs(title = "Dist. of Keyword Popularity",
-       subtitle = "Average shares of average keywords",
-       x = "Avg. Shares of Avg. Keywords",
-       y = "Count of Articles") +
-  theme_minimal()
-```
-
-```{r}
 #| label: length-visual 
 
 p5 <- ggplot(newsdf, aes(x = n_tokens_content)) +
@@ -295,8 +283,10 @@ From this initial visualization, most of the 95% confidence intervals for our pr
 Next, we considered the addition of potential interaction effects between article length and data channel, and between global subjectivity and data channel. The hypothesis for this experiment were:
 
 $$
-H_o : B_{n-tokens-content *data-channel } = B_{global-subectivity *data-channel } = 0 \\ 
-H_A: B_{j} \neq0 \text{ for atleast one }j
+\begin{aligned}
+&H_o : B_{n-tokens-content *data-channel } = B_{global-subectivity *data-channel } = 0 \\ 
+&H_A: B_{j} \neq0 \text{ for atleast one }j
+\end{aligned}
 $$
 
 ```{r}
@@ -449,70 +439,17 @@ kable(auc_values,
       digits = 4)
 ```
 
-From the ROC curves, we can see that 1) Both models have an ROC curve above the random threshold, approaching the top left corner, indicating some predictive power in classifying an article and 2) The Interaction Model (AUC = 0.6902) demonstrates marginally better predictive performance than the Initial Model (AUC = 0.681), confirming our belief that the interaction effects are meaningful predictors. 3) Based on the curve, the optimal threshold for our model should target sensitivity \~ 0.65.
+From the ROC curves, we can see that 1) Both models have an ROC curve above the random threshold, approaching the top left corner, indicating some predictive power in classifying an article and 2) The Interaction Model (AUC = 0.6968) demonstrates marginally better predictive performance than the Initial Model (AUC = 0.6915), confirming our belief that the interaction effects are meaningful predictors. 3) Based on the curve, the optimal threshold for our model should target sensitivity \~ 0.65.
 
-Selecting the point closest to the ROC curve to sensitivity 0.65 yields a threshold of approximately 0.464.
+Selecting the point closest to the ROC curve to sensitivity 0.65 yields a threshold of approximately 0.493, to be used when evaluating the final model. 
 
-```{r}
-#| label: threshold-selection
+#### Results
 
-target_sensitivity <- 0.65
+The final model we fit was:
 
-#interation model only
-roc_data_int <- aug_interact |>
-  roc_curve(is_viral, probability, event_level = "second")
-
-closest_point <- roc_data_int |>
-  mutate(diff = abs(sensitivity - target_sensitivity)) |>
-  arrange(diff) |> 
-  slice(1)
-
-# Display selected threshold
-optimal_threshold <- closest_point$.threshold
-cat("Optimal threshold for classification:", round(optimal_threshold, 3))
-```
-
-**Model Performance**
-
-```{r}
-#| label: roc-curve-interaction 
-#| echo: false
-
-# Generate predicted probabilities for ROC analysis
-prob_roc_int <- predict(interactsMod, type = "response")
-# Augment model and add probabilities
-aug_data_int <- augment(interactsMod) |>
-  mutate(
-    is_viral = as.factor(is_viral),
-    prob_roc_int = prob_roc_int
-  )
-# Generate ROC data
-roc_data_int <- aug_data_int |>
-  roc_curve(is_viral, prob_roc_int, event_level = "second")
-# Plot ROC curve
-autoplot(roc_data_int)
-
-# Calculate AUC
-auc_result_int <- roc_auc(
-  data = aug_data_int,
-  truth = is_viral,
-  prob_roc_int,
-  event_level = "second"
-)
-```
-
-```{r}
-#| label: select-threshold-interaction 
-
-target_sensitivity <- 0.65
-
-closest_point <- roc_data_int |>
-  mutate(diff = abs(sensitivity - target_sensitivity)) |>
-  arrange(diff) |> 
-  slice(1)
-
-closest_point$.threshold
-```
+$$
+\begin{aligned}\log\left( \frac{\pi}{1 - \pi} \right) =\ & \beta_0 + \beta_1\ \text{kw_avg_avg} + \beta_2\ \log(\text{n_tokens_content} + 10^{-4}) + \beta_3\ \text{global_subjectivity} + \beta_4\ \text{title_sentiment_polarity} \\& + \left( \sum_{i=1}^{4} \beta_{4+i}\ \mathbf{1}\{\text{data_channel} = \text{level}_i\} \right) \\& + \left( \sum_{j=1}^{6} \beta_{8+j}\ \mathbf{1}\{\text{day_published} = \text{level}_j\} \right)\end{aligned}
+$$
 
 ```{r}
 #| echo: false
@@ -530,8 +467,8 @@ news_eval <- news_eval |>
 news_eval <- news_eval |>
   mutate(
     predicted_label = case_when(
-      prob_int < 0.482 ~ 0,
-      prob_int >= 0.482 ~ 1,
+      prob_int < 0.493 ~ 0,
+      prob_int >= 0.493 ~ 1,
       TRUE ~ NA_real_
     ),
     predicted_label = as.factor(predicted_label),
@@ -542,15 +479,13 @@ conf_matrix_int <- news_eval |>
 autoplot(conf_matrix_int, type = "heatmap")
 ```
 
-```{r}
-auc_result_int <- roc_auc(
-  data = aug_data_int,
-  truth = is_viral,
-  prob_roc_int,
-  event_level = "second"
-)
-auc_result_int
-```
+#### Discussion + Conclusion 
+
+Limitations in our model include the following: 
+
+We assumed that all our observations/articles were independent from one another, however, this may not be the case as our data was collected across a mutli-year time scale, so thus outside events that we did not account for could have impacted the number of shares a given article received and thus our response variable. Another limitation was that not all the metrics we used are fully interpretable, such as “keyword average average”, as these metrics were derived by previous researchers, and we do not know how these metrics were derived. Finally, our research only focused on one news website, and thus we’re unsure if our results/model could be applied to all articles entirely. 
+
+In the future, it would be helpful to control for time period in our model (to prevent issues with independence) and compare articles in similar groups with one another. Our final AUC curve also insinuates that our model was not the best fit to our data, and thus it could be helpful for us to consider other predictors in the model.
 
 ## **Analysis + Peer Review**
 
@@ -648,6 +583,18 @@ p8 <- ggplot(newsdf, aes(x = log(shares))) +
   theme_minimal()
 
 grid.arrange(p7, p8, ncol = 2)
+```
+
+```{r}
+#| label: avg-keyword-visual 
+
+ggplot(newsdf, aes(x = kw_avg_avg)) +
+  geom_histogram(binwidth = 500, fill = "blue", color = "black", alpha = 0.7) +
+   labs(title = "Dist. of Keyword Popularity",
+       subtitle = "Average shares of average keywords",
+       x = "Avg. Shares of Avg. Keywords",
+       y = "Count of Articles") +
+  theme_minimal()
 ```
 
 Response Variable - our initial EDA of the response variable revealed that it had a heavily right skewed, unimodal distribution. Thus, we imposed a log transformation, which was more symmetric and normally distributed.
