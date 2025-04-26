@@ -1,7 +1,7 @@
 ---
-title: "Analysis Written Report"
+title: "Evaluating Article Virality based off of Article Attributes"
 author: "The BEST Fit - Philip, Olivia, Leo, Allison"
-date: "4/10/2025"
+date: "4/28/2025"
 format: pdf
 execute: 
   warning: false
@@ -28,6 +28,40 @@ library(car)
 
 newsdf <- read_csv("data/OnlineNewsPopularity.csv")
 ```
+
+### **Introduction and Data**
+
+[**Project Motivation and Research Question**]{.underline}
+
+The ways in which people interact with media and discover news have dramatically shifted in recent years, with social media often displacing traditional news outlets. The decentralized nature of social media means the reach of each article is largely dependent on its individual merits, rather than the popularity of the publication it belongs to.
+
+Thus a question arises: What article attributes are associated with social media virality?
+
+[**Dataset and Key Variables**]{.underline}
+
+In this report we will investigate the effects of different article features on social media success using the University of California Irvine Machine Learning Repository’s “Online News Popularity” data set. It includes share counts and descriptive characteristics for articles published by Mashable, a digital media website, over two years (from 2013 to 2015). The data has 39,644 entries in total, with each repsenting an individual article and its associated textual and metadata features.
+
+**Key Variables:** 
+
+**is_viral** - Binary response variable created that evaluates whether an article is considered viral or not, based off of whether total shares is greater/less than 1,400 \[INSERT CITATION HERE\] (0: FALSE, 1: TRUE).
+
+**data_channel** - Categorical variable denoting article topic, merged from indicators: data_channel_is_lifestyle, data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, and data_channel_is_world. This classifies content by subject area.
+
+**day_published** - Categorical variable indicating publication day, merged from indicators: weekday_is_monday, weekday_is_tuesday, weekday_is_wednesday, weekday_is_thursday, weekday_is_friday, weekday_is_saturday, weekday_is_sunday. Additionally includes is_weekend (mean 0.1309) to distinguish weekday from weekend publications.
+
+**title_sentiment_polarity** - Measure of the title's sentiment polarity (positivity/negativity). Values range from -1.0 (extremely negative) to 1.0 (extremely positive), with a mean of 0.0714 and standard deviation of 0.2654. This indicates how emotionally charged article titles are.
+
+**n_tokens_content** - Number of words in the article content. Values range from 0 to 8,474 words, with a mean of 546.51 and standard deviation of 471.10. This quantifies the overall length of the article.
+
+**kw_avg_avg** - Average shares of average keywords in the article. Values range from 0.0 to 43,567.66, with a mean of 3,135.86 and standard deviation of 1,318.13. This measures the expected popularity of the article's keyword selection.
+
+**global_subjectivity** - Measures the overall subjectivity of the article text. Values range from 0.0 (completely objective) to 1.0 (completely subjective), with a mean of 0.4434 and standard deviation of 0.1167. This quantifies how opinion-based versus fact-based the content is.
+
+[**Univariate EDA**]{.underline}
+
+[**Bivariate EDA**]{.underline}
+
+### **Methodology** 
 
 ## **Analysis + Peer Review**
 
