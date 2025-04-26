@@ -441,7 +441,7 @@ kable(auc_values,
 
 From the ROC curves, we can see that 1) Both models have an ROC curve above the random threshold, approaching the top left corner, indicating some predictive power in classifying an article and 2) The Interaction Model (AUC = 0.6968) demonstrates marginally better predictive performance than the Initial Model (AUC = 0.6915), confirming our belief that the interaction effects are meaningful predictors. 3) Based on the curve, the optimal threshold for our model should target sensitivity \~ 0.65.
 
-Selecting the point closest to the ROC curve to sensitivity 0.65 yields a threshold of approximately 0.493, to be used when evaluating the final model. 
+Selecting the point closest to the ROC curve to sensitivity 0.65 yields a threshold of approximately 0.493, to be used when evaluating the final model.
 
 #### Results
 
@@ -479,13 +479,15 @@ conf_matrix_int <- news_eval |>
 autoplot(conf_matrix_int, type = "heatmap")
 ```
 
-#### Discussion + Conclusion 
+#### Discussion + Conclusion
 
 Limitations in our model include the following: 
 
 We assumed that all our observations/articles were independent from one another, however, this may not be the case as our data was collected across a mutli-year time scale, so thus outside events that we did not account for could have impacted the number of shares a given article received and thus our response variable. Another limitation was that not all the metrics we used are fully interpretable, such as “keyword average average”, as these metrics were derived by previous researchers, and we do not know how these metrics were derived. Finally, our research only focused on one news website, and thus we’re unsure if our results/model could be applied to all articles entirely. 
 
 In the future, it would be helpful to control for time period in our model (to prevent issues with independence) and compare articles in similar groups with one another. Our final AUC curve also insinuates that our model was not the best fit to our data, and thus it could be helpful for us to consider other predictors in the model.
+
+\[IGNORE DOWN HERE\]
 
 ## **Analysis + Peer Review**
 
