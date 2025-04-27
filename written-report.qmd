@@ -273,6 +273,8 @@ When fitting our initial model, we also visualized the adjusted odds ratios to e
 
 ```{r}
 #| label: coeff-estimates 
+#| fig-width: 6
+#| fig-height: 3
 
 model_odds_ratios <- tidy(logistic_model, exponentiate = TRUE, conf.int = TRUE)
 
