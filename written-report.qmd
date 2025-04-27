@@ -23,6 +23,8 @@ library(grid)
 library(knitr)
 library(car)
 
+
+
 newsdf <- read_csv("data/OnlineNewsPopularity.csv")
 ```
 
@@ -60,8 +62,8 @@ To understand our response and predictor variables more deeply, we first looked 
 
 ```{r}
 #| label: sentiment-subjectivity-visuals
-#| fig-width: 8
-#| fig-height: 4
+#| fig-width: 6
+#| fig-height: 3
 install.packages("gridExtra")
 p1 <- ggplot(newsdf, aes(x = title_sentiment_polarity)) +
   geom_histogram(fill = "blue", color = "black", alpha = 0.7) +
@@ -84,8 +86,8 @@ The title_sentiment_polarity variable quantifies the emotional change of article
 
 ```{r}
 #| label: length-visual 
-#| fig-width: 8
-#| fig-height: 4
+#| fig-width: 7
+#| fig-height: 3
 p5 <- ggplot(newsdf, aes(x = n_tokens_content)) +
   geom_histogram(fill = "blue", color = "black", alpha = 0.7) +
    labs(title = "Dist. of Article Length",
@@ -123,6 +125,7 @@ newsdf$data_channel <- case_when(
 
 newsdf$data_channel <- factor(newsdf$data_channel)
 ```
+
 ```{r}
 #| label: day-df-setup
 newsdf$day_published <- NA  # Create a new empty column
@@ -142,10 +145,11 @@ newsdf$day_published <- factor(
   levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 )
 ```
+
 ```{r}
 #| label: day-and-data-channel-vs-viral-plot
 #| fig-width: 8
-#| fig-height: 4
+#| fig-height: 3
 day_published_plot <- newsdf |>
   filter(!is.na(day_published)) |>
   group_by(day_published, is_viral) |>
@@ -190,7 +194,7 @@ grid.arrange(
 
 The first graph showns how virality varies across different content categories, described by data_channel. Article published in the Social Media category have the highest proportion of viral outcomes, compared to other catagories. This suggest that content tailored for or about social platforms may be particularly good for engagement. Articles that are categoized under Technology and Business also show strong performance, with over half of the articles in each category going viral, On the other hand, articles in the Entertainment and World categories are less likely to go viral, falling below the 50% mark. This graph underscores how topic area influences content reach potentially because of the differences in audience behavior or platform algorithms.
 
-The second graph examines the relationship between the day an article is published and its likelihood of going viral. Articles published on weekends are substantially more likely to be viral compared to those published during the week. Saturday stands out with the highest porportion of viral content, followed closely by Sunday. In contrast, weekday article tend to have lower virality rates, with viral and non-viral occurring in nearly equal proportions. These findings suggest that timing plays a role in determining an article's reach, likely reflecting differences in user engagement patterns across the week.
+The second graph examines the relationship between the day an article is published and its likelihood of going viral. Articles published on weekends are substantially more likely to be viral compared to those published during the week. Saturday stands out with the highest proportion of viral content, followed closely by Sunday. In contrast, weekday article tend to have lower virality rates, with viral and non-viral occurring in nearly equal proportions. These findings suggest that timing plays a role in determining an article's reach, likely reflecting differences in user engagement patterns across the week.
 
 ```{r}
 #| label: emp-logit 
@@ -445,7 +449,6 @@ grid.arrange(plot_null, plot_interact,
              top = "ROC Curves Comparison")
 ```
 
-
 From the ROC curves, we can see that 1) Both models have an ROC curve above the random threshold, approaching the top left corner, indicating some predictive power in classifying an article and 2) The Interaction Model (AUC = 0.6968) demonstrates marginally better predictive performance than the Initial Model (AUC = 0.6915), confirming our belief that the interaction effects are meaningful predictors. 3) Based on the curve, the optimal threshold for our model should target sensitivity \~ 0.65.
 
 Selecting the point closest to the ROC curve to sensitivity 0.65 yields a threshold of approximately 0.493, to be used when evaluating the final model.
@@ -455,7 +458,7 @@ Selecting the point closest to the ROC curve to sensitivity 0.65 yields a thresh
 The final model we fit was:
 
 $$
-\begin{aligned}\log\left( \frac{\pi}{1 - \pi} \right) =\ & \beta_0 + \beta_1\ \text{kw_avg_avg} + \beta_2\ \log(\text{n_tokens_content} + 10^{-4}) + \beta_3\ \text{global_subjectivity} + \beta_4\ \text{title_sentiment_polarity} \\& + \left( \sum_{i=1}^{4} \beta_{4+i}\ \mathbf{1}\{\text{data_channel} = \text{level}_i\} \right) \\& + \left( \sum_{j=1}^{6} \beta_{8+j}\ \mathbf{1}\{\text{day_published} = \text{level}_j\} \right)\end{aligned}
+\begin{aligned}\log\left( \frac{\pi}{1-\pi} \right) =\ & \beta_0 + \beta_1 \text{kw avg avg} + \beta_2 \log(\text{n tokens content} + 10^{-4}) + \beta_3 \text{global subjectivity} + \beta_4 \text{title sentiment polarity} \\& + \left( \sum_{i=1}^{4} \beta_{4+i}\ \mathbf{1}\{\text{data channel} = \text{level}_i\} \right) \\& + \left( \sum_{j=1}^{6} \beta_{8+j}\ \mathbf{1}\{\text{day published} = \text{level}_j\} \right)\end{aligned}
 $$
 
 ```{r}
@@ -1101,7 +1104,20 @@ The final model we fitted was:
 
 $$
 \begin{aligned}
-\text{logit}(p_{isViral}) &= -1.3623 \\& +\ 0.0004 \times \text{kwAvgAvg} \\& +\ 0.0003 \times \text{nTokensContent} \\& -\ 0.6580 \times \text{dataChannelEntertainment} \\& +\ 0.8882 \times \text{dataChannelSocialMedia} \\& +\ 0.4839 \times \text{dataChannelTechnology} \\& -\ 0.5048 \times \text{dataChannelWorld} \\& -\ 0.1092 \times \text{dayPublishedTuesday} \\& -\ 0.1194 \times \text{dayPublishedWednesday} \\& +\ 0.1450 \times \text{dayPublishedFriday} \\& +\ 1.0247 \times \text{dayPublishedSaturday} \\& +\ 0.8979 \times \text{dayPublishedSunday} \\& +\ 0.5384 \times \text{globalSubjectivity} \\& +\ 0.2244 \times \text{titleSentimentPolarity}
+\text{logit}(p\_{isViral}) &= -1.3623 \\ 
+&+ 0.0004 \times \text{kwAvgAvg} \\
+&+ 0.0003 \times \text{nTokensContent} \\
+&- 0.6580 \times \text{dataChannelEntertainment} \\
+&+ 0.8882 \times \text{dataChannelSocialMedia} \\
+&+ 0.4839 \times \text{dataChannelTechnology} \\
+&- 0.5048 \times \text{dataChannelWorld} \\
+&- 0.1092 \times \text{dayPublishedTuesday} \\
+&- 0.1194 \times \text{dayPublishedWednesday} \\
+&+ 0.1450 \times \text{dayPublishedFriday} \\
+&+ 1.0247 \times \text{dayPublishedSaturday} \\
+&+ 0.8979 \times \text{dayPublishedSunday} \\
+&+ 0.5384 \times \text{globalSubjectivity} \\
+&+ 0.2244 \times \text{titleSentimentPolarity}
 \end{aligned}
 $$
 
