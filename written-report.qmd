@@ -259,30 +259,6 @@ $$
 \begin{aligned}\log\left( \frac{\pi}{1-\pi} \right) =\ & \beta_0 + \beta_1 \text{kw avg avg} + \beta_2 \log(\text{n tokens content} + 10^{-4}) + \beta_3 \text{global subjectivity} + \beta_4 \text{title sentiment polarity} \\& + \left( \sum_{i=1}^{4} \beta_{4+i}\ \mathbf{1}\{\text{data channel} = \text{level}_i\} \right) \\& + \left( \sum_{j=1}^{6} \beta_{8+j}\ \mathbf{1}\{\text{day published} = \text{level}_j\} \right)\end{aligned}
 $$
 
-```{r}
-#| label: initial-model 
-
-logistic_model <- glm(is_viral ~ kw_avg_avg +
-                        log(n_tokens_content + 0.0001) +
-                        data_channel +
-                        day_published + 
-                        global_subjectivity +
-                        title_sentiment_polarity, 
-                family = binomial(link = "logit"),
-                data = newsdf)
-
-tidy(logistic_model) |>
-  mutate(
-    estimate = round(estimate, 4),
-    std.error = round(std.error, 4),
-    statistic = round(statistic, 4),
-    p.value = round(p.value, 4)
-  ) %>%
-  kable(digits = 4, align = "lrrrr",
-        col.names = c("Term", "Estimate", "Std.Error", "z-statistic", "p-value"))
-
-```
-
 Our initial fit gives all of the predictors significant p-values (p\<0.05) and most predictors relatively high magnitude z-statistics, indicating that all variables in the model have statistically significant relationships with the likelihood of content going viral. (Re: fig x)
 
 !!! PAY ATTENTION TO THAT WHEN PROOFREADING.
@@ -533,6 +509,68 @@ Finally, our model only contains observations from Mashable, so extrapolation to
 
 To reduce the influence of these factors in future work, we might control for time period in the data and compare articles between different sites for better generalization. Beyond that, utilizing our own NLP metrics might give us finer grain control, allowing us to consider better predictors for our model.
 
+### Appendix 
+
+```{r}
+#| label: kw-avg-visual 
+#| fig-cap: Figure 1: Average Keyword Distribution 
+
+ggplot(newsdf, aes(x = kw_avg_avg)) +
+  geom_histogram(binwidth = 500, fill = "blue", color = "black", alpha = 0.7) +
+   labs(title = "Dist. of Keyword Popularity",
+       subtitle = "Average shares of average keywords",
+       x = "Avg. Shares of Avg. Keywords",
+       y = "Count of Articles") +
+  theme_minimal()
+```
+
+```{r}
+#| label: initial-linear-reg 
+#| fig-cap: Figure 2: Initial MLR Model 
+
+mlr_model <- lm(log(shares) ~ kw_avg_avg + n_tokens_content + 
+               data_channel + day_published + global_subjectivity +
+               title_sentiment_polarity, 
+               data = newsdf)
+ tidy(mlr_model) |>
+   kable(digits = 4)
+
+```
+
+```{r}
+#| label: MLR-residual-plot 
+#| fig-cap: Figure 3: MLR Residual Plot 
+
+plot(mlr_model, which = c(1), 
+      main = "Residuals vs Fitted Values for MLR Model",
+      sub = "Non-random pattern suggests violation of linear assumption",
+      col = "darkblue")
+```
+
+```{r}
+#| label: initial-log-table 
+#| fig-cap: Figure 4: Initial Logistic Regression Table 
+
+logistic_model <- glm(is_viral ~ kw_avg_avg +
+                        log(n_tokens_content + 0.0001) +
+                        data_channel +
+                        day_published + 
+                        global_subjectivity +
+                        title_sentiment_polarity, 
+                family = binomial(link = "logit"),
+                data = newsdf)
+
+tidy(logistic_model) |>
+  mutate(
+    estimate = round(estimate, 4),
+    std.error = round(std.error, 4),
+    statistic = round(statistic, 4),
+    p.value = round(p.value, 4)
+  ) %>%
+  kable(digits = 4, align = "lrrrr",
+        col.names = c("Term", "Estimate", "Std.Error", "z-statistic", "p-value"))
+```
+
 **Analysis + Peer Review**
 
 [**Draft report**]{.underline}
@@ -583,16 +621,6 @@ grid.arrange(p1, p2, ncol = 2)
 ```
 
 The title_sentiment_polarity variable quantifies the emotional change of article titles. The distribtuion suggests that many titles are emotionally neutral. The global_subjectivity variable is rougly symmetric with its distribution suggesting that most articles contained a balanced mix of factual and opinion-based language. Both global_subjectivity and title_sentiment_popularity display relatively balanced distributions that do not require transformation.
-
-```{r}
-ggplot(newsdf, aes(x = kw_avg_avg)) +
-  geom_histogram(binwidth = 500, fill = "blue", color = "black", alpha = 0.7) +
-   labs(title = "Dist. of Keyword Popularity",
-       subtitle = "Average shares of average keywords",
-       x = "Avg. Shares of Avg. Keywords",
-       y = "Count of Articles") +
-  theme_minimal()
-```
 
 ```{r}
 p5 <- ggplot(newsdf, aes(x = n_tokens_content)) +
