@@ -162,12 +162,13 @@ day_published_plot <- newsdf |>
   scale_y_continuous(labels = scales::percent) +
   labs(x = "Day Published",
        y = "Proportion",
-       fill = "Article Type") +
-  scale_fill_discrete(labels = c("Not Viral", "Viral")) + 
+       fill = "Article Type") +    # <-- just rename the legend here
   coord_flip() +
+  scale_fill_discrete(labels = c("Not Viral", "Viral")) + 
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5),
-        legend.position = "bottom") 
+        legend.position = "bottom")
+
 
 data_channel_plot <- newsdf |>
   filter(!is.na(data_channel)) |>
@@ -180,12 +181,12 @@ data_channel_plot <- newsdf |>
   scale_y_continuous(labels = scales::percent) +
   labs(x = "Data Channel",
        y = "Proportion",
-       fill = "Article Type") +   
-  scale_fill_discrete(labels = c("Not Viral", "Viral")) + 
+       fill = "Article Type") +    # <-- same legend name here too
   coord_flip() +
+  scale_fill_discrete(labels = c("Not Viral", "Viral")) + 
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5),
-        legend.position = "bottom") + 
+        legend.position = "bottom")
 
 (data_channel_plot | day_published_plot) +
   plot_layout(guides = "collect") +
@@ -193,6 +194,7 @@ data_channel_plot <- newsdf |>
     title = "Proportion of Viral Articles by Channel and Day",
     theme = theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
   )
+
 ```
 
 The first graph shows how virality varies across different content categories, described by data_channel. Articles published in the Social Media category have the highest proportion of viral outcomes, compared to other categories. This suggests that content tailored for or about social platforms may be particularly good for engagement. Articles that are categorized under Technology and Business also show strong performance, with over half of the articles in each category going viral, On the other hand, articles in the Entertainment and World categories are less likely to go viral, falling below the 50% mark. This graph underscores how topic area influences content reach potentially because of the differences in audience behavior or platform algorithms.
