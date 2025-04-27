@@ -22,7 +22,7 @@ library(gridExtra)
 library(grid) 
 library(knitr)
 library(car)
-
+library(patchwork)
 
 
 newsdf <- read_csv("data/OnlineNewsPopularity.csv")
@@ -150,6 +150,7 @@ newsdf$day_published <- factor(
 #| label: day-and-data-channel-vs-viral-plot
 #| fig-width: 8
 #| fig-height: 3
+
 day_published_plot <- newsdf |>
   filter(!is.na(day_published)) |>
   group_by(day_published, is_viral) |>
@@ -161,11 +162,12 @@ day_published_plot <- newsdf |>
   scale_y_continuous(labels = scales::percent) +
   labs(x = "Day Published",
        y = "Proportion",
-       fill = "Is Viral") +
-    scale_fill_discrete(name = "Viral?", labels = c("yes", "no")) +
+       fill = "Article Type") +
+  scale_fill_discrete(labels = c("Not Viral", "Viral")) + 
   coord_flip() +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom") 
 
 data_channel_plot <- newsdf |>
   filter(!is.na(data_channel)) |>
@@ -176,21 +178,21 @@ data_channel_plot <- newsdf |>
   ggplot(aes(x = data_channel, y = prop, fill = factor(is_viral))) +
   geom_col(position = "fill") +
   scale_y_continuous(labels = scales::percent) +
-  labs(x= "Data Channel",
+  labs(x = "Data Channel",
        y = "Proportion",
-       fill = "Is Viral") +
+       fill = "Article Type") +   
+  scale_fill_discrete(labels = c("Not Viral", "Viral")) + 
   coord_flip() +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom") + 
 
-grid.arrange(
-  data_channel_plot,
-  day_published_plot,
-  ncol = 2,
-  top = textGrob("Proportion of Viral Articles by Channel and Day", gp = gpar(fontsize = 14, fontface = "bold"))
-)
-
-
+(data_channel_plot | day_published_plot) +
+  plot_layout(guides = "collect") +
+  plot_annotation(
+    title = "Proportion of Viral Articles by Channel and Day",
+    theme = theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
+  )
 ```
 
 The first graph shows how virality varies across different content categories, described by data_channel. Articles published in the Social Media category have the highest proportion of viral outcomes, compared to other categories. This suggests that content tailored for or about social platforms may be particularly good for engagement. Articles that are categorized under Technology and Business also show strong performance, with over half of the articles in each category going viral, On the other hand, articles in the Entertainment and World categories are less likely to go viral, falling below the 50% mark. This graph underscores how topic area influences content reach potentially because of the differences in audience behavior or platform algorithms.
@@ -263,7 +265,6 @@ $$
 $$
 
 Our initial fit gives all of the predictors significant p-values (p\<0.05) and most predictors relatively high magnitude z-statistics, indicating that all variables in the model have statistically significant relationships with the likelihood of content going viral. (Re: fig 4)
-
 
 #### Coefficient Analysis
 
@@ -511,7 +512,7 @@ Finally, our model only contains observations from Mashable, so extrapolation to
 
 To reduce the influence of these factors in future work, we might control for time period in the data and compare articles between different sites for better generalization. Beyond that, utilizing our own NLP metrics might give us finer grain control, allowing us to consider better predictors for our model.
 
-### Appendix 
+### Appendix
 
 ```{r}
 #| label: kw-avg-visual 
