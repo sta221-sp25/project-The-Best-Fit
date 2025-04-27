@@ -162,6 +162,7 @@ day_published_plot <- newsdf |>
   labs(x = "Day Published",
        y = "Proportion",
        fill = "Is Viral") +
+    scale_fill_discrete(name = "Viral?", labels = c("yes", "no")) +
   coord_flip() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5))
@@ -263,7 +264,6 @@ $$
 
 Our initial fit gives all of the predictors significant p-values (p\<0.05) and most predictors relatively high magnitude z-statistics, indicating that all variables in the model have statistically significant relationships with the likelihood of content going viral. (Re: fig 4)
 
-!!! PAY ATTENTION TO THAT WHEN PROOFREADING.
 
 #### Coefficient Analysis
 
