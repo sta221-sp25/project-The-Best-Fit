@@ -255,6 +255,10 @@ The empirical logit plots offer further insight into the relationship between ke
 
 Based on our initial EDA and empirical logit visualization, we selected data channel, day published, article subjectivity, title sentiment polarity, average keyword popularity, and (log) article content length to fit an initial logistic model. Our model attributes are shown below:
 
+$$
+\begin{aligned}\log\left( \frac{\pi}{1-\pi} \right) =\ & \beta_0 + \beta_1 \text{kw avg avg} + \beta_2 \log(\text{n tokens content} + 10^{-4}) + \beta_3 \text{global subjectivity} + \beta_4 \text{title sentiment polarity} \\& + \left( \sum_{i=1}^{4} \beta_{4+i}\ \mathbf{1}\{\text{data channel} = \text{level}_i\} \right) \\& + \left( \sum_{j=1}^{6} \beta_{8+j}\ \mathbf{1}\{\text{day published} = \text{level}_j\} \right)\end{aligned}
+$$
+
 ```{r}
 #| label: initial-model 
 
@@ -279,7 +283,9 @@ tidy(logistic_model) |>
 
 ```
 
-Our initial fit gives all of the predictors significant p-values (p\<0.05) and most predictors relatively high magnitude z-statistics, indicating that all variables in the model have statistically significant relationships with the likelihood of content going viral.
+Our initial fit gives all of the predictors significant p-values (p\<0.05) and most predictors relatively high magnitude z-statistics, indicating that all variables in the model have statistically significant relationships with the likelihood of content going viral. (Re: fig x)
+
+!!! PAY ATTENTION TO THAT WHEN PROOFREADING.
 
 #### Coefficient Analysis
 
@@ -458,13 +464,19 @@ Selecting the point closest to the ROC curve to sensitivity 0.65 yields a thresh
 The final model we fit was:
 
 $$
-\begin{aligned}\log\left( \frac{\pi}{1-\pi} \right) =\ & \beta_0 + \beta_1 \text{kw avg avg} + \beta_2 \log(\text{n tokens content} + 10^{-4}) + \beta_3 \text{global subjectivity} + \beta_4 \text{title sentiment polarity} \\& + \left( \sum_{i=1}^{4} \beta_{4+i}\ \mathbf{1}\{\text{data channel} = \text{level}_i\} \right) \\& + \left( \sum_{j=1}^{6} \beta_{8+j}\ \mathbf{1}\{\text{day published} = \text{level}_j\} \right)\end{aligned}
+\begin{aligned}
+\log\left( \frac{\pi}{1-\pi} \right) =\ & \beta_0 + \beta_1\ \text{kw avg avg} + \beta_2\ \log(\text{n tokens content} + 10^{-4}) + \beta_3\ \text{global subjectivity} + \beta_4\ \text{title sentiment polarity} \\
+& + \left( \sum_{i=1}^{4} \beta_{4+i}\ \mathbf{1}\{\text{data channel} = \text{level}_i\} \right) \\
+& + \left( \sum_{j=1}^{6} \beta_{8+j}\ \mathbf{1}\{\text{day published} = \text{level}_j\} \right) \\
+& + \left( \sum_{i=1}^{4} \beta_{14+i}\ \log(\text{n tokens content} + 10^{-4})\ \mathbf{1}\{\text{data channel} = \text{level}_i\} \right) \\
+& + \left( \sum_{i=1}^{4} \beta_{18+i}\ \text{global subjectivity}\ \mathbf{1}\{\text{data channel} = \text{level}_i\} \right)
+\end{aligned}
 $$
 
 ```{r}
-#| echo: false
 #| fig.cap: "Confusion Matrix for the Interaction Model"
-
+#| fig-width: 4
+#| fig-height: 2
 # Predict log-odds using the interaction model
 log_odds_int <- predict(interactsMod, newdata = newsdf)
 news_eval <- newsdf |>
@@ -489,7 +501,7 @@ conf_matrix_int <- news_eval |>
 autoplot(conf_matrix_int, type = "heatmap")
 ```
 
-When evaluating our final model, we see it has an AUC of \~0.697, an accuracy of \_\_\_, specificity of \_\_\_, and sensitivity of \_\_\_. If considered with the misclassification rate of only \_\_\_, evaluation suggests that our model is moderately well-fit for the data. This precision means that approximately 64% of articles predicted to be viral were correctly classified, indicating that the model performs substantially better than random chance.
+When evaluating our final model, we see it has an AUC of $\sim 0.697$%, an accuracy of $\sim 64.75%$%, specificity of $\sim 64.34%$%, and sensitivity of $\sim 65.03%$%. If we consider the misclassification rate of only $\sim 35.25%$, evaluation suggests that our model is moderately well-fit for the data. This precision means that $\sim64$% of articles predicted to be viral were correctly classified, indicating that the model performs substantially better than random chance.
 
 If we assess the assumptions of logistic regression underlying our model, we see approximately linear relationships randomly dispersed around the trend line. Notably, vertical scatter of points around the trend line for subjectivity and title polarity presents a high degree of noise that might be impacting model performance.
 
@@ -1083,9 +1095,9 @@ closest_point$.threshold
 ```
 
 ```{r}
-#| echo: false
 #| fig.cap: "Confusion Matrix for the Interaction Model"
-
+#| fig-width: 8
+#| fig-height: 4
 # Predict log-odds using the interaction model
 log_odds_int <- predict(interactsMod, newdata = newsdf)
 news_eval <- newsdf |>
