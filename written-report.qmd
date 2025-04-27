@@ -19,11 +19,8 @@ library(tidymodels)
 library(ggplot2)
 library(dplyr)
 library(gridExtra)
+library(grid) 
 library(knitr)
-install.packages("gridExtra")
-if (!requireNamespace("car", quietly = TRUE)) {
-  install.packages("car")
-}
 library(car)
 
 newsdf <- read_csv("data/OnlineNewsPopularity.csv")
@@ -63,7 +60,8 @@ To understand our response and predictor variables more deeply, we first looked 
 
 ```{r}
 #| label: sentiment-subjectivity-visuals
-
+#| fig-width: 8
+#| fig-height: 4
 install.packages("gridExtra")
 p1 <- ggplot(newsdf, aes(x = title_sentiment_polarity)) +
   geom_histogram(fill = "blue", color = "black", alpha = 0.7) +
@@ -82,11 +80,12 @@ p2 <- ggplot(newsdf, aes(x = global_subjectivity)) +
 grid.arrange(p1, p2, ncol = 2)
 ```
 
-The title_sentiment_polarity variable quantifies the emotional change of article titles. The distribtuion suggests that many titles are emotionally neutral. The global_subjectivity variable is rougly symmetric with its distribution suggesting that most articles contained a balanced mix of factual and opinion-based language. Both global_subjectivity and title_sentiment_popularity display relatively balanced distributions that do not require transformation.
+The title_sentiment_polarity variable quantifies the emotional change of article titles. This distribtuion suggests that many titles are emotionally neutral. The global_subjectivity variable is roughly symmetric with its distribution, suggesting most articles contained a balanced mix of factual and opinion-based language. Both display relatively balanced distributions that do not require transformation.
 
 ```{r}
 #| label: length-visual 
-
+#| fig-width: 8
+#| fig-height: 4
 p5 <- ggplot(newsdf, aes(x = n_tokens_content)) +
   geom_histogram(fill = "blue", color = "black", alpha = 0.7) +
    labs(title = "Dist. of Article Length",
@@ -109,7 +108,7 @@ Both `n_tokens_content` and `kw_avg_avg` displayed heavily right-skewed distribu
 [**Bivariate EDA**]{.underline}
 
 ```{r}
-#| label: data-channel-day-pub
+#| label: data-df-setup
 newsdf$is_viral <- ifelse(newsdf$shares >= 1400, 1, 0)
 
 newsdf$data_channel <- NA
@@ -123,20 +122,9 @@ newsdf$data_channel <- case_when(
 )
 
 newsdf$data_channel <- factor(newsdf$data_channel)
-
-newsdf |>
-  group_by(data_channel, is_viral) |>
-  summarise(n = n()) |>
-  mutate(prop = n / sum(n)) |> 
-  ggplot(aes(x = data_channel, y = prop, fill = factor(is_viral))) +
-  geom_col(position = "fill") +
-  scale_y_continuous(labels = scales::percent) +
-  labs(title = "Proportion of Viral Articles by Data Channel",
-       x = "Data Channel", y = "Proportion",
-       fill = "Is Viral") +
-  coord_flip() +
-  theme_minimal()
-
+```
+```{r}
+#| label: day-df-setup
 newsdf$day_published <- NA  # Create a new empty column
 
 newsdf$day_published <- case_when(
@@ -153,8 +141,13 @@ newsdf$day_published <- factor(
   newsdf$day_published,
   levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 )
-
-newsdf |>
+```
+```{r}
+#| label: day-and-data-channel-vs-viral-plot
+#| fig-width: 8
+#| fig-height: 4
+day_published_plot <- newsdf |>
+  filter(!is.na(day_published)) |>
   group_by(day_published, is_viral) |>
   summarise(n = n(), .groups = "drop") |>
   group_by(day_published) |>
@@ -162,20 +155,47 @@ newsdf |>
   ggplot(aes(x = day_published, y = prop, fill = factor(is_viral))) +
   geom_col(position = "fill") +
   scale_y_continuous(labels = scales::percent) +
-  labs(title = "Proportion of Viral vs. Non-Viral Articles by Day Published",
-       x = "Day Published", y = "Proportion",
+  labs(x = "Day Published",
+       y = "Proportion",
        fill = "Is Viral") +
   coord_flip() +
-  theme_minimal()
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+data_channel_plot <- newsdf |>
+  filter(!is.na(data_channel)) |>
+  group_by(data_channel, is_viral) |>
+  summarise(n = n(), .groups = "drop") |>
+  group_by(data_channel) |>
+  mutate(prop = n / sum(n)) |>
+  ggplot(aes(x = data_channel, y = prop, fill = factor(is_viral))) +
+  geom_col(position = "fill") +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x= "Data Channel",
+       y = "Proportion",
+       fill = "Is Viral") +
+  coord_flip() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+grid.arrange(
+  data_channel_plot,
+  day_published_plot,
+  ncol = 2,
+  top = textGrob("Proportion of Viral Articles by Channel and Day", gp = gpar(fontsize = 14, fontface = "bold"))
+)
+
 
 ```
 
-The first graph explores how virality varies across different content categories, as captured by the data_channel variable. Article published under the Social Media category have the highest proportion of viral outcomes, with many reaching viral status, This suggest that content tailored for or about social platforms may be particularly good for engagement. Articles that are categoized under Technology and Business also show strong performance, with over half of the articles in each category going viral, On the other hand, articles in the Entertainment and World categories are less likely to go viral, falling below the 50% mark. This graph underscores how topic area influences content reach potentially because of the differences in audience behavior or platform algorithms.
+The first graph showns how virality varies across different content categories, described by data_channel. Article published in the Social Media category have the highest proportion of viral outcomes, compared to other catagories. This suggest that content tailored for or about social platforms may be particularly good for engagement. Articles that are categoized under Technology and Business also show strong performance, with over half of the articles in each category going viral, On the other hand, articles in the Entertainment and World categories are less likely to go viral, falling below the 50% mark. This graph underscores how topic area influences content reach potentially because of the differences in audience behavior or platform algorithms.
 
 The second graph examines the relationship between the day an article is published and its likelihood of going viral. Articles published on weekends are substantially more likely to be viral compared to those published during the week. Saturday stands out with the highest porportion of viral content, followed closely by Sunday. In contrast, weekday article tend to have lower virality rates, with viral and non-viral occurring in nearly equal proportions. These findings suggest that timing plays a role in determining an article's reach, likely reflecting differences in user engagement patterns across the week.
 
 ```{r}
 #| label: emp-logit 
+#| fig-width: 12
+#| fig-height: 4
 
 logistic_model <- glm(is_viral ~ kw_avg_avg + 
                         log(n_tokens_content + 0.0001) + 
@@ -204,7 +224,7 @@ p11 <- ggplot(data = newsdf, aes(x = kw_avg_avg, y = log_odds)) +
   ) +
   theme_minimal()
 p12<- ggplot(data = newsdf, aes(x = global_subjectivity, y = log_odds)) +
-  geom_point(size = 3, color = "blue") +  # Plot empirical logits
+  geom_point(size = 3, color = "blue") +  
   geom_smooth(method = "lm", se = FALSE, color = "red") +  # Fit a line
   labs(
     title = "Empirical Logit Plot",
@@ -213,7 +233,7 @@ p12<- ggplot(data = newsdf, aes(x = global_subjectivity, y = log_odds)) +
   ) +
   theme_minimal()
 p13<- ggplot(data = newsdf, aes(x = title_sentiment_polarity, y = log_odds)) +
-  geom_point(size = 3, color = "blue") +  # Plot empirical logits
+  geom_point(size = 3, color = "blue") + 
   geom_smooth(method = "lm", se = FALSE, color = "red") +  # Fit a line
   labs(
     title = "Empirical Logit Plot",
@@ -339,40 +359,39 @@ Examining the output of the deviance test, the p-value is very low, at around 0.
 We further compared our two models through their ROC and AUCs.
 
 ```{r}
-#| label: model-evaluation
-#| fig.width: 10
-#| fig.height: 5
+#| label: data-preparation-function
 
-# Function to prepare ROC data
+# --- Data Preparation Function ---
 prepare_roc_data <- function(model, data, model_name) {
-  # Generate predicted probabilities
   probs <- predict(model, type = "response")
-  
-  # Augment model with predictions
+
   aug_data <- augment(model) |>
     mutate(
       is_viral = as.factor(.data$is_viral),
       probability = probs,
       model = model_name
     )
-  
+
   return(aug_data)
 }
 
-# Prepare data for both models
 aug_null <- prepare_roc_data(logistic_model, newsdf, "Initial Model")
 aug_interact <- prepare_roc_data(interactsMod, newsdf, "Interaction Model")
 
-# Combine data for comparison
+
 combined_aug <- bind_rows(aug_null, aug_interact)
 
-# Generate ROC curves
-roc_data <- combined_aug |>
-  group_by(model) |>
+# ROC Curve Data Generation
+roc_data_null <- aug_null |>
   roc_curve(is_viral, probability, event_level = "second")
 
-# Calculate AUC values
-# Calculate AUC for each model separately to avoid group_by issues
+roc_data_interact <- aug_interact |>
+  roc_curve(is_viral, probability, event_level = "second")
+```
+
+```{r}
+#| label: auc-calculation
+# --- AUC Calculation ---
 auc_null <- roc_auc(
   data = filter(combined_aug, model == "Initial Model"),
   truth = is_viral,
@@ -387,21 +406,17 @@ auc_interact <- roc_auc(
   event_level = "second"
 )
 
-# Combine AUC values
 auc_values <- bind_rows(
   mutate(auc_null, model = "Initial Model"),
   mutate(auc_interact, model = "Interaction Model")
 )
+```
 
-# Create separate ROC curve plots and arrange them in a grid
-# Generate ROC data for each model separately
-roc_data_null <- aug_null |>
-  roc_curve(is_viral, probability, event_level = "second")
-
-roc_data_interact <- aug_interact |>
-  roc_curve(is_viral, probability, event_level = "second")
-
-# Plot for Initial Model
+```{r}
+#| label: roc-curve-plotting
+#| fig-width: 8
+#| fig-height: 4
+# --- ROC Curve Plotting: Initial Model ---
 plot_null <- ggplot(roc_data_null, aes(x = 1 - specificity, y = sensitivity)) +
   geom_line(size = 1.2, color = "#E41A1C") +
   geom_abline(lty = 2, alpha = 0.5, slope = 1, intercept = 0) +
@@ -413,8 +428,6 @@ plot_null <- ggplot(roc_data_null, aes(x = 1 - specificity, y = sensitivity)) +
     y = "True Positive Rate (Sensitivity)"
   ) +
   theme_minimal()
-
-# Plot for Interaction Model
 plot_interact <- ggplot(roc_data_interact, aes(x = 1 - specificity, y = sensitivity)) +
   geom_line(size = 1.2, color = "#4DAF4A") +
   geom_abline(lty = 2, alpha = 0.5, slope = 1, intercept = 0) +
@@ -427,17 +440,11 @@ plot_interact <- ggplot(roc_data_interact, aes(x = 1 - specificity, y = sensitiv
   ) +
   theme_minimal()
 
-# Arrange plots side by side using gridExtra
-library(gridExtra)
-grid.arrange(plot_null, plot_interact, 
+grid.arrange(plot_null, plot_interact,
              ncol = 2,
              top = "ROC Curves Comparison")
-
-# Display AUC values
-kable(auc_values, 
-      caption = "AUC Values for Both Models",
-      digits = 4)
 ```
+
 
 From the ROC curves, we can see that 1) Both models have an ROC curve above the random threshold, approaching the top left corner, indicating some predictive power in classifying an article and 2) The Interaction Model (AUC = 0.6968) demonstrates marginally better predictive performance than the Initial Model (AUC = 0.6915), confirming our belief that the interaction effects are meaningful predictors. 3) Based on the curve, the optimal threshold for our model should target sensitivity \~ 0.65.
 
@@ -517,7 +524,7 @@ In this report we will investigate the effects of different article features on 
 
 ### **Univariate Exploratory Data Analysis**
 
-To understand our response and predictor variables more deeply, we first looked at their individual distributions. We found that while some variables are relatively approximately symmetric, others are heavily skewed and required log transformations to better meet modeling assumptions.
+First, to understand our response and predictor variables, we looked at their individual distributions. *We found that while some variables are relatively approximately symmetric, others are heavily skewed and required log transformations to better meet modeling assumptions.*
 
 ```{r}
 install.packages("gridExtra")
