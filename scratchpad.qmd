@@ -6,328 +6,75 @@ execute:
   warning: false
 editor: visual
 ---
+#### Results
 
-```{r}
-newsdf$is_viral <- ifelse(newsdf$shares >= 1400, 1, 0)
+The final model we fit was:
 
-
-logistic_model <- glm(is_viral ~ kw_avg_avg  + n_tokens_content + data_channel +
-                  is_weekend + global_subjectivity +
-                  title_sentiment_polarity, 
-                family = binomial(link = "logit"),
-                data = newsdf)
-
-```
-
-```{r}
-pred_prob <- predict.glm(logistic_model, type = "response")
-
-model_aug <- augment(logistic_model)
-
-model_aug <- model_aug |>
-  mutate(is_viral = as.factor(is_viral))
-
-model_aug <- model_aug |>
-  bind_cols(pred_prob = pred_prob)
-# calculate sensitivity and specificity at each threshold
-roc_curve_data <- model_aug |>
-roc_curve(is_viral, pred_prob,
-event_level = "second")
-# plot roc curve
-autoplot(roc_curve_data)
-```
-
-```{r}
-
-target_sensitivity <- 0.65
-
-closest_point <- roc_curve_data |>
-  mutate(diff = abs(sensitivity - target_sensitivity)) |>
-  arrange(diff) |> 
-  slice(1)
-
-closest_point$.threshold
-```
-
-```{r}
-log_odds <- predict(logistic_model, newsdf)
-newsdf <- newsdf |>
-  bind_cols(log_odds = log_odds)
-newsdf <- newsdf |>
-  mutate(
-    predict_prob = exp(log_odds) / (1 + exp(log_odds))
-  )
-
-newsdf <- newsdf |>
-  mutate(
-    estimateVirality = case_when(
-      predict_prob < 0.4916522 ~ 0,
-      predict_prob > 0.4916522 ~ 1,
-      TRUE ~ NA_real_  
-    )
-  )
-
-newsdf <- newsdf |> 
-  mutate(
-         estimateVirality = as.factor(estimateVirality),
-         is_viral = as.factor(is_viral)
-         )
-
-model_conf <- newsdf |>
-  conf_mat(is_viral,estimateVirality)
-
-autoplot(model_conf, type="heatmap")
-```
-
-```{r}
-
-newsdf$is_viral <- as.factor(newsdf$is_viral)
-
-ggplot(data = newsdf, aes(x=data_channel, fill=is_viral )) + 
-    geom_bar(position="fill")
-
-
-```
-
-```{r}
-newsdf <- newsdf|>
-  mutate(
-    is_viral = factor(is_viral, 
-                       levels = c(0,1), 
-                       labels = c("Not Viral", "Viral"))
-  )
-
-ggplot(data = newsdf, aes(x=day_published, fill=is_viral )) + 
-    geom_bar(position="fill")
-
-```
-
-`{# TODO - Subjectiity has varying effects based on data channel, show that}`
-
-```{r}
-#| label: interaction-subjectivity-data_channel 
-
-ggplot(newsdf, aes(fill=is_viral, y=global_subjectivity)) + 
-  geom_boxplot(position = position_dodge()) + 
-  facet_wrap(~ data_channel) + 
-  coord_flip(ylim = c(0, 0.6)) + 
-  labs(
-    y = "Global Subjectivity", 
-    fill = "Virality"
-  )
-
-```
-
-```{r}
-#| label: interaction-length-virality 
-ggplot(newsdf, aes(fill=is_viral, y=log(n_tokens_content))) + 
-  geom_boxplot(position = position_dodge(width = 0.8)) + 
-  facet_wrap(~ data_channel) + 
-  coord_cartesian(ylim = c(-0.1, 0.1)) + 
-  coord_flip(ylim = c(4, 8)) +
-  labs(
-    y = "Article Body Length (log transformed)", 
-    fill = "Virality"
-  )
-```
-
-```{r}
-#| echo: false
-#| message: false
-#| warning: false
-
-nullMod <- glm(is_viral ~ log(kw_avg_avg+0.0001) + log(n_tokens_content+0.0001) + data_channel +
-                 day_published + global_subjectivity +
-                 title_sentiment_polarity, 
-               family = binomial(link = "logit"),
-               data = newsdf)
-
-interactsMod <- glm(is_viral ~ log(kw_avg_avg+0.0001) + log(n_tokens_content+0.001) + data_channel +
-                     day_published + global_subjectivity +
-                     title_sentiment_polarity + log(n_tokens_content+ 0.001) * data_channel, 
-                   family = binomial(link = "logit"),
-                   data = newsdf)
-
-# Extract log-likelihoods
-L_0 <- glance(nullMod)$logLik
-L_a <- glance(interactsMod)$logLik
-
-# Calculate test statistic
-G <- -2 * (L_0 - L_a)
-
-# Calculate p-value
-p_value <- pchisq(G, df = 5, lower.tail = FALSE)
-
-# Create table for drop in deviance test
-deviance_table <- tibble(
-  Model = c("Null Model", "Interaction Model"),
-  `Log-Likelihood` = c(L_0, L_a),
-  `Deviance Statistic (G)` = c(NA, G),
-  df = c(NA, 5),
-  `p-value` = c(NA, p_value)
-)
-
-# Display table using knitr::kable
-knitr::kable(deviance_table, 
-             caption = "Drop in Deviance Test Results",
-             digits = c(0, 3, 3, 0, 4))
-
-```
-
-$$ 
-\begin{aligned}
-H_0: \text{logit}(P(\text{is_viral} = 1)) &= \beta_0 \\
-&+ \beta_1 \times \log(\text{kw_avg_avg} + 0.0001) \\
-&+ \beta_2 \times \log(\text{n_tokens_content} + 0.0001) \\
-&+ \beta_3 \times \text{data_channel} \\
-&+ \beta_4 \times \text{day_published} \\
-&+ \beta_5 \times \text{global_subjectivity} \\
-&+ \beta_6 \times \text{title_sentiment_polarity}
-\end{aligned}
 $$
-
-$$ 
 \begin{aligned}
-H_a:\text{logit}(P(\text{is_viral} = 1)) &= \beta_0 \\
-&+ \beta_1 \times \log(\text{kw_avg_avg} + 0.0001) \\
-&+ \beta_2 \times \log(\text{n_tokens_content} + 0.0001) \\
-&+ \beta_3 \times \text{data_channel} \\
-&+ \beta_4 \times \text{day_published} \\
-&+ \beta_5 \times \text{global_subjectivity} \\
-&+ \beta_6 \times \text{title_sentiment_polarity} \\
-&+ \beta_7 \times (\text{n_tokens_content} \times \text{data_channel})
-\end{aligned}
-$$
-
-### Methodology
-
-Since initial EDA revealed a heavy right skew in the distribution of article shares, as well as a poential non-linear relationship, we elected to use a logistic regression model with a transformed binary response variable.
-
-Based on our initial EDA and empirical logit visualization, we selected data channel, day published, article subjectivity, title sentiment polarity, log transformed 'avg keyword popularity', and log transformed article content length to fit an initial logistic model.
-
-For the response variable, we constructed "is_viral" by transforming 'share' count into a binary response variable, with 1 for articles more popular than 1400 shares and 0 for those with less. We selected this threshold of 1400 shares based on prior literature\[CITE HERE\] and the recommendation of the data set curator.
-
-$$ 
-\begin{aligned}
-\text{logit}(P(\text{is_viral} = 1)) &= \beta_0 \\
-&+ \beta_1 \times \log(\text{kw_avg_avg} + 0.0001) \\
-&+ \beta_2 \times \log(\text{n_tokens_content} + 0.0001) \\
-&+ \beta_3 \times \text{data_channel} \\
-&+ \beta_4 \times \text{day_published} \\
-&+ \beta_5 \times \text{global_subjectivity} \\
-&+ \beta_6 \times \text{title_sentiment_polarity}
+\log\left( \frac{\pi}{1-\pi} \right) =\ & \beta_0 + \beta_1\ \text{kw avg avg} + \beta_2\ \log(\text{n tokens content} + 10^{-4}) + \beta_3\ \text{global subjectivity} + \beta_4\ \text{title sentiment polarity} \\
+& + \left( \sum_{i=1}^{4} \beta_{4+i}\ \mathbf{1}\{\text{data channel} = \text{level}_i\} \right) \\
+& + \left( \sum_{j=1}^{6} \beta_{8+j}\ \mathbf{1}\{\text{day published} = \text{level}_j\} \right) \\
+& + \left( \sum_{i=1}^{4} \beta_{14+i}\ \log(\text{n tokens content} + 10^{-4})\ \mathbf{1}\{\text{data channel} = \text{level}_i\} \right) \\
+& + \left( \sum_{i=1}^{4} \beta_{18+i}\ \text{global subjectivity}\ \mathbf{1}\{\text{data channel} = \text{level}_i\} \right)
 \end{aligned}
 $$
 
 ```{r}
-#| label: log-model 
-
-newsdf$is_viral <- ifelse(newsdf$shares >= 1400, 1, 0)
-
-
-logistic_model <- glm(is_viral ~ log(kw_avg_avg + 0.0001)  + log(n_tokens_content + 0.0001) + data_channel +
-                  day_published + global_subjectivity +
-                  title_sentiment_polarity, 
-                family = binomial(link = "logit"),
-                data = newsdf)
-
-tidy(logistic_model) |>
+#| fig.cap: "Confusion Matrix for the Interaction Model"
+#| fig-width: 4
+#| fig-height: 2
+# Predict log-odds using the interaction model
+log_odds_int <- predict(interactsMod, newdata = newsdf)
+news_eval <- newsdf |>
+  bind_cols(log_odds_int = log_odds_int)
+# Convert to predicted probabilities
+news_eval <- news_eval |>
   mutate(
-    estimate = round(estimate, 4),
-    std.error = round(std.error, 4),
-    statistic = round(statistic, 4),
-    p.value = round(p.value, 4)
-  ) %>%
-  kable(digits = 4, align = "lrrrr",
-        col.names = c("Term", "Estimate", "Std.Error", "z-statistic", "p-value"))
-```
-
-
-
-
-Our initial fit gives all of the predictors significant p-values (p\<0.05) and most predictors relatively high magnitude z-statistics, indicating that all variables in the model have statistically significant relationships with the likelihood of content going viral.
-
-Next, we considered the addition of poetential interaction effects between article length and data channel, and between global subjectivity and data channel.
-
-The hypothesis for this experiment were:
-
-$$
-H_o : B_{n-tokens-content *data-channel } =0 \\ H_A: B_{n-tokens-content *data-channel } \neq0 
-$$
-
-
-
-```{r}
-#| echo: false
-#| message: false
-#| warning: false
-
-nullMod <- glm(is_viral ~ log(kw_avg_avg+0.0001) + log(n_tokens_content+0.0001) + data_channel +
-                 day_published + global_subjectivity +
-                 title_sentiment_polarity, 
-               family = binomial(link = "logit"),
-               data = newsdf)
-
-interactsMod <- glm(is_viral ~ log(kw_avg_avg+0.0001) + log(n_tokens_content+0.0001) + data_channel +
-                     day_published + global_subjectivity +
-                     title_sentiment_polarity + n_tokens_content * data_channel + 
-                      global_subjectivity * data_channel, 
-                   family = binomial(link = "logit"),
-                   data = newsdf)
-
-# Extract log-likelihoods
-L_0 <- glance(nullMod)$logLik
-L_a <- glance(interactsMod)$logLik
-
-# Calculate test statistic
-G <- -2 * (L_0 - L_a)
-
-# Calculate p-value
-p_value <- pchisq(G, df = 5, lower.tail = FALSE)
-
-# Create table for drop in deviance test
-deviance_table <- tibble(
-  Model = c("Null Model", "Interaction Model"),
-  `Log-Likelihood` = c(L_0, L_a),
-  `Deviance Statistic (G)` = c(NA, G),
-  df = c(NA, 5),
-  `p-value` = c(NA, p_value)
-)
-
-# Display table using knitr::kable
-knitr::kable(deviance_table, 
-             caption = "Drop in Deviance Test Results",
-             digits = c(0, 3, 3, 0, 4))
-
-```
-Examining the output of the  deviance test, the p-value is very low, at around 0.
-This indicates that the data provides sufficient evidence that at-least one of the newly added interaction terms is a statistically significant predictor in whether an article will go viral or not, after accounting for data channel, day published, global subjectivity, title sentiment polarity, average key word popularity, and main body length for a given article. Therefore, we will keep the interaction effects in the final model.
-
-
-
-
-```{r}
-#| echo: false
-
-# Generate predicted probabilities for ROC analysis
-prob_roc_int <- predict(interactsMod, type = "response")
-
-aug_data_int <- augment(interactsMod) |>
-  mutate(
-    is_viral = as.factor(is_viral),
-    prob_roc_int = prob_roc_int
+    prob_int = exp(log_odds_int) / (1 + exp(log_odds_int))
   )
-# Generate ROC data
-roc_data_int <- aug_data_int |>
-  roc_curve(is_viral, prob_roc_int, event_level = "second")
-# Plot ROC curve
-autoplot(roc_data_int) +
-  labs(
-    title = "ROC Curve for News Virality Prediction Model",
-    subtitle = paste("AUC =", round(roc_auc(aug_data_int, is_viral, prob_roc_int, event_level = "second")$.estimate, 4)),
-    x = "False Positive Rate (1 - Specificity)",
-    y = "True Positive Rate (Sensitivity)"
-  ) +
-  theme_minimal()
+news_eval <- news_eval |>
+  mutate(
+    predicted_label = case_when(
+      prob_int < 0.493 ~ 0,
+      prob_int >= 0.493 ~ 1,
+      TRUE ~ NA_real_
+    ),
+    predicted_label = as.factor(predicted_label),
+    is_viral = as.factor(is_viral)
+  )
+conf_matrix_int <- news_eval |>
+  conf_mat(is_viral, predicted_label)
+autoplot(conf_matrix_int, type = "heatmap")
+```
 
-``` 
+When evaluating our final model, we see it has an AUC of $\sim 0.697$%, an accuracy of $\sim 64.75%$%, specificity of $\sim 64.34%$%, and sensitivity of $\sim 65.03%$%. If we consider the misclassification rate of only $\sim 35.25%$, evaluation suggests that our model is moderately well-fit for the data. This precision means that $\sim64$% of articles predicted to be viral were correctly classified, indicating that the model performs substantially better than random chance.
+
+If we assess the assumptions of logistic regression underlying our model, we see approximately linear relationships randomly dispersed around the trend line. Notably, vertical scatter of points around the trend line for subjectivity and title polarity presents a high degree of noise that might be impacting model performance.
+
+Interpreting the coefficients of the model, we can conclude:
+
+Article category, or 'Data Channel' the most strongly correlated with virality, with the odds of articles in the Social Media and Technology categories to go viral are approximately 15.66 times and 4.76 times that of a similar article in the Business category (reference group). Similarly, Entertainment and World news articles also show significantly higher odds of going viral than similar Business news articles, with odds ratios of 2.44 and 2.20, respectively. This suggests that readers are particularly engaged with content about social media and technology innovations, and also tend to share Entertainment and World news more than articles about Business news, however, not to the degree of Social Media and Technology articles. 
+
+Day of publication is another important factor, with weekend publications significantly outperforming weekday content. Compared to Monday, Saturday articles have 2.81 times the odds , and Sunday articles have 2.47 times the odds of going viral, holding all else constant. In contrast, the odds of Tuesday and Wednesday articles going viral are 11.7% and 13.5% lower, with odds ratios of 0.883 and 0.865, respectively, than similar Monday articles. This weekend effect may arise from increased leisure time, as people take off from work or school during the weekend.
+
+Article subjectivity and sentiment likely also influence virality. A fully subjective article (global subjectivity = 1) has 6.12 times the odds of going viral compared to a fully objective article (global subjectivity = 0), keeping all else constant. Similarly, a one-unit increase in title sentiment polarity (a neutral article compared to strongly positive) increases the odds of virality by 26.6%. This trend supports the idea that emotionally charged or opinionated content tends to be shared more frequently than neutral content. 
+
+Keyword popularity also plays a role in determining the odds of an article going viral. Specifically, every time keyword popularity is doubled, the odds of an article going viral increase by about 29.1%, holding all else constant. While article length is a statistically significant predictor of an article’s virality, its impact is minimal. Specifically, every 10% increase in article length increases the odds of virality by approximately 1.55%, holding all else constant. Thus, while article length still adds to our model, it doesn’t add as much as predictors like day published or data channel.  
+
+
+For Entertainment and World news, the benefit of article length is diminished or even reversed.  For Entertainment articles, every 10% increase in article length leads to a 1.9% decrease in the odds of going viral compared to a similar Business article, while for World news, a 10% increase in article length results in a 2.5% decrease in odds. The interaction terms between article length and Social Media or Technology is not statistically significant, suggesting the main effect of article length dominates in those categories.
+
+In Social Media articles, a fully subjective tone actually reduces the odds of virality by 98.3%, despite the strong main effect of subjectivity. This suggests that objective tone may be more prone to virality for Social Media. In comparison, for Technology articles, subjectivity decreases odds by 82.6%. However, for both Entertainment and World news, these interaction effects are not statistically significant, which suggests that subjectivity could still hold a positive or neutral effect.
+
+#### Discussion + Conclusion
+
+Our findings support the idea that Article Length, Category, Keyword Popularity, Date of publication, subjectivity and title polarity all contribute to an online article's success, while other factors like the rate of positive/negative words were less reliable predictors. Through the empirical logit plot and the drop-in-deviance test of the interaciton terms, we determined that the effects of article length and global subjectivity both vary based on article topics.
+
+Since the Mashable repository was collected over a multi-year time period, one limitation of our approach is the distinct possibility of outside temporal factors. This poses a potential violation of the independent observation assumption, with major events potentially shaping article performance on shorter time scales.
+
+Another limitation to our findings are the poor interpretability of the NLP derived predictors, such as 'title-sentiment-polarity' and 'keyword average average', which were derived in an extensive process by the UCI researchers who curated the dataset.
+
+Finally, our model only contains observations from Mashable, so extrapolation to other news/article sites may be limited.
+
+To reduce the influence of these factors in future work, we might control for time period in the data and compare articles between different sites for better generalization. Beyond that, utilizing our own NLP metrics might give us finer grain control, allowing us to consider better predictors for our model.
