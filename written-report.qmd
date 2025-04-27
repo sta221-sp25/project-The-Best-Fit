@@ -38,11 +38,11 @@ Thus a question arises: What article attributes are associated with social media
 
 #### [**Dataset and Key Variables**]{.underline}
 
-In this report we investigate the effects of different article features on social media success using the University of California Irvine Machine Learning Repository’s “Online News Popularity” data set. It includes share counts and descriptive characteristics for articles published by Mashable, a digital media website, over two years (from 2013 to 2015). The data has 39,644 entries in total, with each repsenting an individual article and its associated textual and metadata features.
+In this report we investigate the effects of different article features on social media success using the University of California Irvine Machine Learning Repository’s “Online News Popularity” data set. It includes share counts and descriptive characteristics for articles published by Mashable, a digital media website, over two years (from 2013 to 2015). The data has 39,644 entries in total, with each representing an individual article and its associated textual and metadata features.
 
 **Key Variables:**
 
-**is_viral** - Binary response variable created that evaluates whether an article is considered viral or not, based off of whether total shares is greater/less than 1,400 \[INSERT CITATION HERE\] (0: FALSE, 1: TRUE).
+**is_viral** - Binary response variable created that evaluates whether an article is considered viral or not, based on whether total shares is greater/less than 1,400 \[INSERT CITATION HERE\] (0: FALSE, 1: TRUE).
 
 **data_channel** - Categorical variable denoting article topic, merged from indicators: data_channel_is_lifestyle, data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, and data_channel_is_world. This classifies content by subject area.
 
@@ -82,7 +82,7 @@ p2 <- ggplot(newsdf, aes(x = global_subjectivity)) +
 grid.arrange(p1, p2, ncol = 2)
 ```
 
-The title_sentiment_polarity variable quantifies the emotional change of article titles. This distribtuion suggests that many titles are emotionally neutral. The global_subjectivity variable is roughly symmetric with its distribution, suggesting most articles contained a balanced mix of factual and opinion-based language. Both display relatively balanced distributions that do not require transformation.
+The title_sentiment_polarity variable quantifies the emotional change of article titles. This distribution suggests that many titles are emotionally neutral. The global_subjectivity variable is roughly symmetric with its distribution, suggesting most articles contained a balanced mix of factual and opinion-based language. Both display relatively balanced distributions that do not require transformation.
 
 ```{r}
 #| label: length-visual 
@@ -105,7 +105,7 @@ p6 <- ggplot(newsdf, aes(x = log(n_tokens_content))) +
 grid.arrange(p5, p6, ncol = 2)
 ```
 
-Both `n_tokens_content` and `kw_avg_avg` displayed heavily right-skewed distributions that warranted log transformations.To correct for this skewness and reduce the influence of extreme values, we log-transformed both variables. Post-transformation, the distributions became more symmetric and centered, better aligning with modeling assumptions.
+Both `n_tokens_content` and `kw_avg_avg` displayed heavily right-skewed distributions that warranted log transformations. Check the appendix for the distribution of the `kw_avg_avg` variable. To correct for this skewness and reduce the influence of extreme values, we log-transformed both variables. Post-transformation, the distributions became more symmetric and centered, better aligning with modeling assumptions.
 
 [**Bivariate EDA**]{.underline}
 
@@ -192,9 +192,9 @@ grid.arrange(
 
 ```
 
-The first graph showns how virality varies across different content categories, described by data_channel. Article published in the Social Media category have the highest proportion of viral outcomes, compared to other catagories. This suggest that content tailored for or about social platforms may be particularly good for engagement. Articles that are categoized under Technology and Business also show strong performance, with over half of the articles in each category going viral, On the other hand, articles in the Entertainment and World categories are less likely to go viral, falling below the 50% mark. This graph underscores how topic area influences content reach potentially because of the differences in audience behavior or platform algorithms.
+The first graph shows how virality varies across different content categories, described by data_channel. Articles published in the Social Media category have the highest proportion of viral outcomes, compared to other categories. This suggests that content tailored for or about social platforms may be particularly good for engagement. Articles that are categorized under Technology and Business also show strong performance, with over half of the articles in each category going viral, On the other hand, articles in the Entertainment and World categories are less likely to go viral, falling below the 50% mark. This graph underscores how topic area influences content reach potentially because of the differences in audience behavior or platform algorithms.
 
-The second graph examines the relationship between the day an article is published and its likelihood of going viral. Articles published on weekends are substantially more likely to be viral compared to those published during the week. Saturday stands out with the highest proportion of viral content, followed closely by Sunday. In contrast, weekday article tend to have lower virality rates, with viral and non-viral occurring in nearly equal proportions. These findings suggest that timing plays a role in determining an article's reach, likely reflecting differences in user engagement patterns across the week.
+The second graph examines the relationship between the day an article is published and its likelihood of going viral. Articles published on weekends are substantially more likely to be viral compared to those published during the week. Saturday stands out with the highest proportion of viral content, followed closely by Sunday. In contrast, weekday articles tend to have lower virality rates, with viral and non-viral occurring in nearly equal proportions. These findings suggest that timing plays a role in determining an article's reach, likely reflecting differences in user engagement patterns across the week.
 
 ```{r}
 #| label: emp-logit 
@@ -249,7 +249,7 @@ p13<- ggplot(data = newsdf, aes(x = title_sentiment_polarity, y = log_odds)) +
 grid.arrange(p11, p12, p13, ncol = 3)
 ```
 
-The empirical logit plots offer further insight into the relationship between key predictors and the binary outcome is_viral. The plot for average shares of average keywords reveals a positive relationship with virality. As the average popularity of an article's keywords increases, the likelihood of the article going viral rises sharply, with the empirical logit showing an upward linear trend. This suggest that keyword selection plays a key role in driving article engagement and affirms kw_avg_avg is a key predictors in modeling vitality. In contrast, the plot of overall subjectivity indicated on a slight positive relationship. Although the fitted line trends upward, the data are widely dispersed, and the effect appears weak and inconsistent, implying subjectivity alone is not a reliable driver of viral outcomes. A similar conclusion can be drawn from the plot of title sentiment polarity. While there is a marginal positive slope, suggesting that more positive titles generate a slightly greater chance of going viral, the overall relationship is weak. The plots highlight a clear distinction in predictive power among the variables and support prioritizing keyword metrics over emotional tone or subjectivity when modeling article vitality.
+The empirical logit plots offer further insight into the relationship between key predictors and the binary outcome is_viral. The plot for average shares of average keywords reveals a positive relationship with virality. As the average popularity of an article's keywords increases, the likelihood of the article going viral rises sharply, with the empirical logit showing an upward linear trend. This suggests that keyword selection plays a key role in driving article engagement and affirms kw_avg_avg is a key predictor in modeling vitality. In contrast, the plot of overall subjectivity indicated a slight positive relationship. Although the fitted line trends upward, the data are widely dispersed, and the effect appears weak and inconsistent, implying subjectivity alone is not a reliable driver of viral outcomes. A similar conclusion can be drawn from the plot of title sentiment polarity. While there is a marginal positive slope, suggesting that more positive titles generate a slightly greater chance of going viral, the overall relationship is weak. The plots highlight a clear distinction in predictive power among the variables and support prioritizing keyword metrics over emotional tone or subjectivity when modeling article vitality.
 
 ### **Methodology**
 
@@ -356,9 +356,9 @@ knitr::kable(deviance_table,
 
 ```
 
-Examining the output of the deviance test, the p-value is very low, at around 0. This indicates that the data provides sufficient evidence that at-least one of the newly added interaction terms is a statistically significant predictor in whether an article will go viral or not, after accounting for data channel, day published, global subjectivity, title sentiment polarity, average key word popularity, and main body length for a given article. Therefore, we will keep the interaction effects in the final model.
+Examining the output of the deviance test, the p-value is very low, at around 0. This indicates that the data provides sufficient evidence that at-least one of the newly added interaction terms is a statistically significant predictor in whether an article will go viral or not, after accounting for data channel, day published, global subjectivity, title sentiment polarity, average keyword popularity, and main body length for a given article. Therefore, we will keep the interaction effects in the final model.
 
-#### Model Evaluation and Comparison
+**Model Evaluation and Comparison**
 
 We further compared our two models through their ROC and AUCs.
 
@@ -491,7 +491,7 @@ autoplot(conf_matrix_int, type = "heatmap")
 
 When evaluating our final model, we see it has an AUC of \~0.697, an accuracy of \_\_\_, specificity of \_\_\_, and sensitivity of \_\_\_. If considered with the misclassification rate of only \_\_\_, evaluation suggests that our model is moderately well-fit for the data. This precision means that approximately 64% of articles predicted to be viral were correctly classified, indicating that the model performs substantially better than random chance.
 
-If we asses the assumptions of logistic regression underlying our model, we see approximately linear relationships randomly dispersed around the trend line. Notably, vertical scatter of points around the trend line for subjectivity and title polarity presents a high degree of noise that might be impacting model performance.
+If we assess the assumptions of logistic regression underlying our model, we see approximately linear relationships randomly dispersed around the trend line. Notably, vertical scatter of points around the trend line for subjectivity and title polarity presents a high degree of noise that might be impacting model performance.
 
 Interpreting the coefficients of the model, we can conclude:
 
@@ -511,17 +511,17 @@ In Social Media articles, a fully subjective tone actually reduces the odds of v
 
 #### Discussion + Conclusion
 
-Our findings support the idea that Article Length, Category, Keyword Popularity, Date of publication, subjectivity and title polarity all contribute to an online article's end success, while other factors like the rate of positive/negative words were less reliable predictors. \[SOMETHING MORE THERE\]
+Our findings support the idea that Article Length, Category, Keyword Popularity, Date of publication, subjectivity and title polarity all contribute to an online article's success, while other factors like the rate of positive/negative words were less reliable predictors. \[SOMETHING MORE THERE\]
 
-Since the Mashable repository was collected on a multi-year time period, one limitation of our approach is the distinct possability of outside temporal factors. This poses a potential violation of the independent observation assumption, with major events potentially shaping article performance on shorter time scales.
+Since the Mashable repository was collected over a multi-year time period, one limitation of our approach is the distinct possibility of outside temporal factors. This poses a potential violation of the independent observation assumption, with major events potentially shaping article performance on shorter time scales.
 
-Another limitation to our findings are the poor interpetability of the NLP derived predictors, such as 'title-sentiment-polarity' and 'keyword average average', which were derived in an extensive process by the UCI researchers who curated the dataset.
+Another limitation to our findings are the poor interpretability of the NLP derived predictors, such as 'title-sentiment-polarity' and 'keyword average average', which were derived in an extensive process by the UCI researchers who curated the dataset.
 
 Finally, our model only contains observations from Mashable, so extrapolation to other news/article sites may be limited.
 
 To reduce the influence of these factors in future work, we might control for time period in the data and compare articles between different sites for better generalization. Beyond that, utilizing our own NLP metrics might give us finer grain control, allowing us to consider better predictors for our model.
 
-## **Analysis + Peer Review**
+**Analysis + Peer Review**
 
 [**Draft report**]{.underline}
 
