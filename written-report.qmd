@@ -32,9 +32,7 @@ newsdf <- read_csv("data/OnlineNewsPopularity.csv")
 
 #### [**Project Motivation and Research Question**]{.underline}
 
-The ways in which people interact with media and discover news have dramatically shifted in recent years, with social media often displacing traditional news outlets. The decentralized nature of social media means the reach of each article is largely dependent on its individual merits, rather than the popularity of the publication it belongs to.
-
-Thus a question arises: What article attributes are associated with social media virality?
+The ways in which people interact with media and discover news have dramatically shifted in recent years, with social media often displacing traditional news outlets. The decentralized nature of social media means the reach of each article is largely dependent on its individual merits, rather than the popularity of the publication it belongs to. Thus, we are interested in exploring what exactly impacts an article's virality and can these factors aid news agencies when publishing new articles. Our research question is as follows: What article attributes are associated with social media virality?
 
 #### [**Dataset and Key Variables**]{.underline}
 
@@ -42,7 +40,7 @@ In this report we investigate the effects of different article features on socia
 
 **Key Variables:**
 
-**is_viral** - Binary response variable created that evaluates whether an article is considered viral or not, based on whether total shares is greater/less than 1,400 based on past literature (Fernandes Et. al 2015) (0: FALSE, 1: TRUE).
+**is_viral** - Binary response variable we created to evaluate whether an article is considered viral or not, based on whether total shares is greater/less than 1,400 based on past literature (Fernandes Et. al 2015) (0: FALSE, 1: TRUE).
 
 **data_channel** - Categorical variable denoting article topic, merged from indicators: data_channel_is_lifestyle, data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, and data_channel_is_world. This classifies content by subject area.
 
@@ -82,7 +80,7 @@ p2 <- ggplot(newsdf, aes(x = global_subjectivity)) +
 grid.arrange(p1, p2, ncol = 2)
 ```
 
-The title_sentiment_polarity variable quantifies the emotional change of article titles. This distribution suggests that many titles are emotionally neutral. The global_subjectivity variable is roughly symmetric with its distribution, suggesting most articles contained a balanced mix of factual and opinion-based language. Both display relatively balanced distributions that do not require transformation.
+`title_sentiment_polarity`'s distribution suggests that many titles are emotionally neutral. The `global_subjectivity` variable has a roughly symmetric distribution, suggesting most articles contained a balanced mix of factual and opinion-based language. Both display relatively balanced distributions that do not require transformation. `kw_avg_avg` also has a relatively symmetric distribution, and was left untransformed (re: fig 1). 
 
 ```{r}
 #| label: length-visual 
@@ -105,7 +103,7 @@ p6 <- ggplot(newsdf, aes(x = log(n_tokens_content))) +
 grid.arrange(p5, p6, ncol = 2)
 ```
 
-Both `n_tokens_content` and `kw_avg_avg` displayed heavily right-skewed distributions that warranted log transformations. Check the appendix for the distribution of the `kw_avg_avg` variable. To correct for this skewness and reduce the influence of extreme values, we log-transformed both variables. Post-transformation, the distributions became more symmetric and centered, better aligning with modeling assumptions.
+`n_tokens_content` displayed a heavily right-skewed distributions that warranted log transformations. To correct for this skewness and reduce the influence of extreme values, we log-transformed both variables. Post-transformation, the distributions became more symmetric and centered, better aligning with modeling assumptions.
 
 [**Bivariate EDA**]{.underline}
 
@@ -192,12 +190,13 @@ data_channel_plot <- newsdf |>
   plot_layout(guides = "collect") +
   plot_annotation(
     title = "Proportion of Viral Articles by Channel and Day",
-    theme = theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
+    theme = theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+                  legend.position = "bottom")
   )
 
 ```
 
-The first graph shows how virality varies across different content categories, described by data_channel. Articles published in the Social Media category have the highest proportion of viral outcomes, compared to other categories. This suggests that content tailored for or about social platforms may be particularly good for engagement. Articles that are categorized under Technology and Business also show strong performance, with over half of the articles in each category going viral, On the other hand, articles in the Entertainment and World categories are less likely to go viral, falling below the 50% mark. This graph underscores how topic area influences content reach potentially because of the differences in audience behavior or platform algorithms.
+The first graph shows how virality varies across different content categories, described by data_channel. Articles published in the Social Media category have the highest proportion of viral articles, compared to other categories. This suggests that content tailored for or about social platforms may be particularly beneficial for engagement. Articles that are categorized under Technology and Business also show strong performance, with over half of the articles in each channel categorized as viral. On the other hand, articles in the Entertainment and World categories had a lower proportion of viral articles, falling below the 50% mark. This graph underscores how topic area potentially influences content reach due to differences in audience behavior or platform algorithms.
 
 The second graph examines the relationship between the day an article is published and its likelihood of going viral. Articles published on weekends are substantially more likely to be viral compared to those published during the week. Saturday stands out with the highest proportion of viral content, followed closely by Sunday. In contrast, weekday articles tend to have lower virality rates, with viral and non-viral occurring in nearly equal proportions. These findings suggest that timing plays a role in determining an article's reach, likely reflecting differences in user engagement patterns across the week.
 
@@ -229,12 +228,11 @@ The second graph examines the relationship between the day an article is publish
   plot_layout(guides = "collect") +
   plot_annotation(
     title = "Article Virality by Channel and Subjectivity/Length",
-    theme = theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
+    theme = theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+                  legend.position = "bottom")
   )
 ```
-
-From visualizations of the data channel compared to global subjectivity and (log) article body length, compared to virality proportions, we also found because virality proportions differed between channels, these were two potential interaction effects we wanted to consider when building our model.
-
+From visualizations of global subjectivity/(log) article body length compared to virality proportions and proportioned by topic area, we also found two potential interaction effects we wanted to consider when building our model, as the relationship between global subjectivity/(log) article length and virality differed across data channel type. 
 ```{r}
 #| label: emp-logit 
 #| fig-width: 12
@@ -286,20 +284,18 @@ grid.arrange(p11, p12, p13, ncol = 3,
               top = textGrob("Empirical Logit Plot", gp=gpar(fontsize=20, font=2)))
 ```
 
-The empirical logit plots offer further insight into the relationship between key predictors and the binary outcome is_viral. The plot for average shares of average keywords reveals a positive relationship with virality. As the average popularity of an article's keywords increases, the likelihood of the article going viral rises sharply, with the empirical logit showing an upward linear trend. This suggests that keyword selection plays a key role in driving article engagement and affirms kw_avg_avg is a key predictor in modeling vitality. In contrast, the plot of overall subjectivity indicated a slight positive relationship. Although the fitted line trends upward, the data are widely dispersed, and the effect appears weak and inconsistent, implying subjectivity alone is not a reliable driver of viral outcomes. A similar conclusion can be drawn from the plot of title sentiment polarity. While there is a marginal positive slope, suggesting that more positive titles generate a slightly greater chance of going viral, the overall relationship is weak. The plots highlight a clear distinction in predictive power among the variables and support prioritizing keyword metrics over emotional tone or subjectivity when modeling article vitality.
+The empirical logit plots offer further insight into the relationship between key predictors and the binary response, `is_viral`. The plot for average shares of average keywords reveals a linear positive relationship with log odds of virality. As the average popularity of an article's keywords increases, the log odds of the article going viral increases, with the empirical logit showing an upward trend. This suggests that keyword selection plays a key role in driving article engagement and affirms kw_avg_avg is a key predictor in modeling vitality. 
+In contrast, the plot of overall subjectivity indicated a slight linear positive relationship. Although the empirical logit fit line trends upward, the data points are widely dispersed, and the effect appears weak and inconsistent, implying subjectivity alone is not a reliable driver of viral outcomes. Similarly, the plot for title sentiment polarity shows a marginal positive slope, implying that more positive article titles may be associated with slightly higher chances of virality. However, the relationship is again weak and shows considerable variability. Overall, the empirical logit plots highlight meaningful differences in predictive strength across variables and suggest that keyword popularity metrics are stronger predictors of article virality than emotional tone or subjectivity.
 
 ### **Methodology**
 
-While we initially fitted a linear regression model, using log(shares) as our response variable (re: fig 2), we found that it violated the linear regression assumption of constant variance (re: fig 3).
-
-Thus, based on our initial EDA and empirical logit visualization, we selected data channel, day published, article subjectivity, title sentiment polarity, average keyword popularity, and (log) article content length to fit an initial logistic model instead, shown below:
+While we initially fitted a linear regression model, using log(shares) as our response variable (re: fig 2), we found that it violated the linear regression assumption of constant variance (re: fig 3). Thus, based on our initial EDA and empirical logit visualization, we selected data channel, day published, article subjectivity, title sentiment polarity, average keyword popularity, and (log) article content length to fit an initial logistic model instead, shown below:
 
 $$
 \begin{aligned}
 \log\left( \frac{\pi}{1-\pi} \right) =\ & \beta_0 + \beta_1 \text{kw avg avg} + \beta_2 \log(\text{n tokens content} + 10^{-4}) + \beta_3 \text{global subjectivity}\\ & + \beta_4 \text{title sentiment polarity} \\& + \left( \sum_{i=1}^{4} \beta_{4+i}\ \mathbf{1}\{\text{data channel} = \text{level}_i\} \right) \\& + \left( \sum_{j=1}^{6} \beta_{8+j}\ \mathbf{1}\{\text{day published} = \text{level}_j\} \right)\end{aligned}
 $$
-
-Our initial fit gives all of the predictors significant p-values (p\<0.05) and most predictors relatively high magnitude z-statistics, indicating that all variables in the model have statistically significant relationships with the likelihood of content going viral. (Re: fig 4)
+All the predictors in our initialky fit model possess significant p-values (p\<0.05) and most predictors have relatively high magnitude z-statistics, indicating that all variables in the model have statistically significant relationships with the likelihood of content going viral (re: fig 4). 
 
 #### Coefficient Analysis
 
@@ -326,7 +322,7 @@ From this initial visualization, most of the 95% confidence intervals for our pr
 
 #### Interaction Effects
 
-Next, we considered the addition of potential interaction effects between article length and data channel, and between global subjectivity and data channel. The hypothesis for this experiment were:
+Next, we considered the addition of potential interaction effects between article length and data channel, and between global subjectivity and data channel based on our EDA. The hypothesis for this test was:
 
 $$
 \begin{aligned}
@@ -378,11 +374,11 @@ knitr::kable(deviance_table,
 
 ```
 
-Examining the output of the deviance test, the p-value is very low, at around 0. This indicates that the data provides sufficient evidence that at-least one of the newly added interaction terms is a statistically significant predictor in whether an article will go viral or not, after accounting for data channel, day published, global subjectivity, title sentiment polarity, average keyword popularity, and main body length for a given article. Therefore, we will keep the interaction effects in the final model.
+Examining the output of the deviance test, the p-value is very low, at around 0. This indicates that the data provides sufficient evidence that at-least one of the newly added interaction terms is a statistically significant predictor in whether an article will go viral or not, after accounting for data channel, day published, global subjectivity, title sentiment polarity, average keyword popularity, and main body length for a given article. This suggests that these interaction effects add to our final model. 
 
 **Model Evaluation and Comparison**
 
-We further compared our two models through their ROC and AUCs.
+To reaffirm this model selection, we further compared our two models' ROC curves and AUCs.
 
 ```{r}
 #| label: data-preparation-function
@@ -473,7 +469,7 @@ grid.arrange(plot_null, plot_interact,
 
 From the ROC curves, we can see that 1) Both models have an ROC curve above the random threshold, approaching the top left corner, indicating some predictive power in classifying an article and 2) The Interaction Model (AUC = 0.6968) demonstrates marginally better predictive performance than the Initial Model (AUC = 0.6915), confirming our belief that the interaction effects are meaningful predictors. 3) Based on the curve, the optimal threshold for our model should target sensitivity \~ 0.65.
 
-Selecting the point closest to the ROC curve to sensitivity 0.65 yields a threshold of approximately 0.493, to be used when evaluating the final model.
+Selecting the point closest to the ROC curve to sensitivity 0.65 yields a threshold of approximately 0.493, to be used when evaluating the final model (re: fig 5).
 
 #### Results
 
@@ -516,7 +512,7 @@ conf_matrix_int <- news_eval |>
 autoplot(conf_matrix_int, type = "heatmap")
 ```
 
-When evaluating our final model, we see it has an AUC of $\sim 0.697$, an accuracy of $\sim 64.75$, specificity of $\sim 64.34$, and sensitivity of $\sim 65.03$. If we consider the misclassification rate of only $\sim 35.25$, evaluation suggests that our model is moderately well-fit for the data. This precision means that $\sim64$ of articles predicted to be viral were correctly classified, indicating that the model performs substantially better than random chance.
+When evaluating our final model, we see it has an AUC of $\sim 0.697$, an accuracy of $\sim 64.7$, specificity of $\sim 64.3$, and sensitivity of $\sim 65.0$ (re: fig 6). If we consider the misclassification rate of only $\sim 35.3$, evaluation suggests that our model is moderately well-fit for the data. This precision means that $\sim 65.3$ of articles predicted to be viral were correctly classified, indicating that the model performs substantially better than random chance.
 
 If we assess the assumptions of logistic regression underlying our model, we see approximately linear relationships randomly dispersed around the trend line. Notably, vertical scatter of points around the trend line for subjectivity and title polarity presents a high degree of noise that might be impacting model performance.
 
@@ -524,7 +520,7 @@ Interpreting the coefficients of the model, we can conclude:
 
 Article category, or 'Data Channel' the most strongly correlated with virality, with the odds of articles in the Social Media and Technology categories to go viral are approximately 15.66 times and 4.76 times that of a similar article in the Business category (reference group). Similarly, Entertainment and World news articles also show significantly higher odds of going viral than similar Business news articles, with odds ratios of 2.44 and 2.20, respectively. This suggests that readers are particularly engaged with content about social media and technology innovations, and also tend to share Entertainment and World news more than articles about Business news, however, not to the degree of Social Media and Technology articles.
 
-Day of publication is another important factor, with weekend publications significantly outperforming weekday content. Compared to Monday, Saturday articles have 2.81 times the odds , and Sunday articles have 2.47 times the odds of going viral, holding all else constant. In contrast, the odds of Tuesday and Wednesday articles going viral are 11.7% and 13.5% lower, with odds ratios of 0.883 and 0.865, respectively, than similar Monday articles. This weekend effect may arise from increased leisure time, as people take off from work or school during the weekend.
+Day of publication is another important factor, with weekend publications significantly outperforming weekday content. Compared to Monday, Saturday articles have 2.81 times the odds, and Sunday articles have 2.47 times the odds of going viral, holding all else constant. In contrast, the odds of Tuesday and Wednesday articles going viral are 11.7% and 13.5% lower than similar Monday articles, with odds ratios of 0.883 and 0.865, respectively. This weekend effect may arise from increased leisure time, as people take off from work or school during the weekend.
 
 Article subjectivity and sentiment likely also influence virality. A fully subjective article (global subjectivity = 1) has 6.12 times the odds of going viral compared to a fully objective article (global subjectivity = 0), keeping all else constant. Similarly, a one-unit increase in title sentiment polarity (a neutral article compared to strongly positive) increases the odds of virality by 26.6%. This trend supports the idea that emotionally charged or opinionated content tends to be shared more frequently than neutral content.
 
@@ -536,11 +532,11 @@ In Social Media articles, a fully subjective tone actually reduces the odds of v
 
 #### Discussion + Conclusion
 
-Our findings support the idea that Article Length, Category, Keyword Popularity, Date of publication, subjectivity and title polarity all contribute to an online article's success, while other factors like the rate of positive/negative words were less reliable predictors. Through the empirical logit plot and the drop-in-deviance test of the interaciton terms, we determined that the effects of article length and global subjectivity both vary based on article topics.
+Our findings support the idea that Article Length, Category, Keyword Popularity, Date of publication, subjectivity and title polarity all contribute to an online article's success, while other factors like the rate of positive/negative words were less reliable predictors. Through the empirical logit plot and the drop-in-deviance test of the interaction terms, we determined that the effects of article length and global subjectivity both vary based on article topics.
 
 Since the Mashable repository was collected over a multi-year time period, one limitation of our approach is the distinct possibility of outside temporal factors. This poses a potential violation of the independent observation assumption, with major events potentially shaping article performance on shorter time scales.
 
-Another limitation to our findings are the poor interpretability of the NLP derived predictors, such as 'title-sentiment-polarity' and 'keyword average average', which were derived in an extensive process by the UCI researchers who curated the dataset.
+Another limitation to our findings is the poor interpretability of the NLP derived predictors, such as `title-sentiment-polarity` and `keyword average average`, which were derived in an extensive process by the UCI researchers who curated the dataset.
 
 Finally, our model only contains observations from Mashable, so extrapolation to other news/article sites may be limited.
 
@@ -615,3 +611,52 @@ tidy(logistic_model) |>
   kable(digits = 4, align = "lrrrr",
         col.names = c("Term", "Estimate", "Std.Error", "z-statistic", "p-value"))
 ```
+
+```{r}
+#| label: select-threshold 
+#| fig-cap: "Figure 5: Selecting Threshold for Final Logistic Model"
+
+target_sensitivity <- 0.65
+
+#interation model only
+roc_data_int <- aug_interact |>
+  roc_curve(is_viral, probability, event_level = "second")
+
+closest_point <- roc_data_int |>
+  mutate(diff = abs(sensitivity - target_sensitivity)) |>
+  arrange(diff) |> 
+  slice(1)
+
+# Display selected threshold
+optimal_threshold <- closest_point$.threshold
+cat("Optimal threshold for classification:", round(optimal_threshold, 3))
+```
+
+```{r}
+#| label: model-info 
+#| fig-cap: "Figure 6: Final Logistic Model"
+
+TN <- 9960
+FP <- 5518
+FN <- 5569
+TP <- 10364
+
+accuracy <- (TP + TN) / (TP + TN + FP + FN)
+misclassification <- (FP + FN) / (TP + TN + FP + FN)
+sensitivity <- TP / (TP + FN)  # Recall
+specificity <- TN / (TN + FP)
+precision <- TP / (TP + FP)
+FPR <- FP / (FP + TN)
+FNR <- FN / (FN + TP)
+
+
+metrics_table <- data.frame(
+  Metric = c("Accuracy", "Misclassification Rate", "Sensitivity (Recall)", "Specificity", 
+             "Precision", "False Positive Rate (FPR)", "False Negative Rate (FNR)"),
+  Value = c(accuracy, misclassification, sensitivity, specificity, 
+            precision, FPR, FNR)
+)
+
+kable(metrics_table, digits = 3, caption = "Logistic Model Metrics Summary")
+```
+
