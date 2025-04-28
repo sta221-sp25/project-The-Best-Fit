@@ -478,7 +478,7 @@ Selecting the point closest to the ROC curve to sensitivity 0.65 yields a thresh
 
 #### Results
 
-The final model we fit was:
+The final model we fit is shown below, with specific coefficient values included in the appendix (re: fig 5, appendix). 
 
 $$
 \begin{aligned}
@@ -517,7 +517,7 @@ conf_matrix_int <- news_eval |>
 autoplot(conf_matrix_int, type = "heatmap")
 ```
 
-When evaluating our final model, we see it has an AUC of $\sim 0.697$, an accuracy of $\sim 64.7$%, specificity of $\sim 64.3$%, and sensitivity of $\sim 65.0$% (re: fig 5). If we consider the misclassification rate of only $\sim 35.3$%, evaluation suggests that our model is moderately well-fit for the data. This precision means that $\sim 65.3$% of articles predicted to be viral were correctly classified, indicating that the model performs substantially better than random chance.
+When evaluating our final model, we see it has an AUC of $\sim 0.697$, an accuracy of $\sim 64.7$%, specificity of $\sim 64.3$%, and sensitivity of $\sim 65.0$% (re: fig 6). If we consider the misclassification rate of only $\sim 35.3$%, evaluation suggests that our model is moderately well-fit for the data. This precision means that $\sim 65.3$% of articles predicted to be viral were correctly classified, indicating that the model performs substantially better than random chance.
 
 If we assess the assumptions of logistic regression underlying our model, we see approximately linear relationships randomly dispersed around the trend line. Notably, vertical scatter of points around the trend line for subjectivity and title polarity presents a high degree of noise that might be impacting model performance.
 
@@ -621,10 +621,16 @@ tidy(logistic_model) |>
         col.names = c("Term", "Estimate", "Std.Error", "z-statistic", "p-value"))
 ```
 
-```{}
+#### Figure 5: Final Logistic Model Table
+
+```{r}
+#| label: log-interacts 
+
+tidy(interactsMod) |>
+  kable(digits = 3)
 ```
 
-#### Figure 5: Final Logistic Model Metrics
+#### Figure 6: Final Logistic Model Metrics
 
 ```{r}
 #| label: model-info 
