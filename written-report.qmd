@@ -292,7 +292,7 @@ The empirical logit plots offer further insight into the relationship between ke
 
 ### **Methodology**
 
-While we initially fitted a linear regression model, using log(shares) as our response variable (re: fig 1), we found that it violated the linear regression assumption of constant variance (re: fig 2).
+While we initially fitted a linear regression model, using log(shares) as our response variable (re: fig 2), we found that it violated the linear regression assumption of constant variance (re: fig 3).
 
 Thus, based on our initial EDA and empirical logit visualization, we selected data channel, day published, article subjectivity, title sentiment polarity, average keyword popularity, and (log) article content length to fit an initial logistic model instead, shown below:
 
@@ -324,7 +324,7 @@ ggplot(data = model_odds_ratios, aes(x = term, y = estimate)) +
   coord_flip()
 ```
 
-From this initial visualization, most of the 95% confidence intervals for our predictor coefficients included 1, suggesting that the majority of our predictors added to the model. While a couple predictors (such as day_published_Thursday and log(n_tokens_content) were close to 1, we decided to still keep them in the model as they were either one level of several of a categorical variable, or because we found a possible interaction effect from the earlier EDA and felt it was at least a valuable predictor to consider in our model.
+From this initial visualization, most of the 95% confidence intervals for our predictor coefficients did not include 1, suggesting that the majority of our predictors significantly contributed to the model fit. While a couple predictors (such as day_published_Thursday and log(n_tokens_content) were close to 1, we kept them in the model due to the overall significance of the categorical variable (ex. day_published) or their role in potential interaction effects. 
 
 #### Interaction Effects
 
@@ -519,7 +519,7 @@ conf_matrix_int <- news_eval |>
 autoplot(conf_matrix_int, type = "heatmap")
 ```
 
-When evaluating our final model, we see it has an AUC of $\sim 0.697$%, an accuracy of $\sim 64.75%$%, specificity of $\sim 64.34%$%, and sensitivity of $\sim 65.03%$%. If we consider the misclassification rate of only $\sim 35.25%$, evaluation suggests that our model is moderately well-fit for the data. This precision means that $\sim64$% of articles predicted to be viral were correctly classified, indicating that the model performs substantially better than random chance.
+When evaluating our final model, we see it has an AUC of $\sim 0.697$, an accuracy of $\sim 64.75$, specificity of $\sim 64.34$, and sensitivity of $\sim 65.03$. If we consider the misclassification rate of only $\sim 35.25$, evaluation suggests that our model is moderately well-fit for the data. This precision means that $\sim64$ of articles predicted to be viral were correctly classified, indicating that the model performs substantially better than random chance.
 
 If we assess the assumptions of logistic regression underlying our model, we see approximately linear relationships randomly dispersed around the trend line. Notably, vertical scatter of points around the trend line for subjectivity and title polarity presents a high degree of noise that might be impacting model performance.
 
@@ -533,9 +533,9 @@ Article subjectivity and sentiment likely also influence virality. A fully subje
 
 Keyword popularity also plays a role in determining the odds of an article going viral. Specifically, every time keyword popularity is doubled, the odds of an article going viral increase by about 29.1%, holding all else constant. While article length is a statistically significant predictor of an article’s virality, its impact is minimal. Specifically, every 10% increase in article length increases the odds of virality by approximately 1.55%, holding all else constant. Thus, while article length still adds to our model, it doesn’t add as much as predictors like day published or data channel.
 
-For Entertainment and World news, the benefit of article length is diminished or even reversed. For Entertainment articles, every 10% increase in article length leads to a 1.9% decrease in the odds of going viral compared to a similar Business article, while for World news, a 10% increase in article length results in a 2.5% decrease in odds. The interaction terms between article length and Social Media or Technology is not statistically significant, suggesting the main effect of article length dominates in those categories.
+For Entertainment and World news, the benefit of article length is diminished or even reversed. For Entertainment articles, every 10% increase in article length leads to a 1.9% decrease in the odds of going viral compared to a similar Business article, while for World news, a 10% increase in article length results in a 2.5% decrease in odds. The interaction terms between Article Length and Social Media or Technology were not statistically significant, suggesting that the impact of Article Length on probability of virality does not differ greatly for Social Media and Technology compared to the baseline catagory, Business.
 
-In Social Media articles, a fully subjective tone actually reduces the odds of virality by 98.3%, despite the strong main effect of subjectivity. This suggests that objective tone may be more prone to virality for Social Media. In comparison, for Technology articles, subjectivity decreases odds by 82.6%. However, for both Entertainment and World news, these interaction effects are not statistically significant, which suggests that subjectivity could still hold a positive or neutral effect.
+In Social Media articles, a fully subjective tone actually reduces the odds of virality by 98.3%, despite the strong main effect of subjectivity. This suggests that objective tone may be more prone to virality for Social Media. In comparison, for Technology articles, each one unit subjectivity increase reduces the odds by 82.6%. However, for both Entertainment and World news, these interaction effects are not statistically significant, which suggests that subjectivity could still hold a positive or neutral effect.
 
 #### Discussion + Conclusion
 
