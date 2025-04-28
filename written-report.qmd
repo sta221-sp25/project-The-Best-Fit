@@ -1,5 +1,5 @@
 ---
-title: "Evaluating Article Virality based off of Article Attributes"
+title: "Characterizing and Predicting Article Virality based off of Metadata and Article Attributes"
 author: "The BEST Fit - Philip, Olivia, Leo, Allison"
 date: "4/28/2025"
 format: pdf
@@ -204,7 +204,7 @@ The second graph examines the relationship between the day an article is publish
 ```{r}
 #| label: vis-interact-effects 
  
- interactData <- ggplot(newsdf, aes(fill=is_viral, y=global_subjectivity)) + 
+ interactData <- ggplot(newsdf, aes(fill=factor(is_viral), y=global_subjectivity)) + 
    geom_boxplot(position = position_dodge()) + 
    facet_wrap(~ data_channel) + 
    coord_flip(ylim = c(0, 0.6)) + 
@@ -214,7 +214,7 @@ The second graph examines the relationship between the day an article is publish
      fill = "Virality"
    )
  
- interactContent <- ggplot(newsdf, aes(fill=is_viral, y=log(n_tokens_content))) + 
+ interactContent <- ggplot(newsdf, aes(fill=factor(is_viral), y=log(n_tokens_content))) + 
    geom_boxplot(position = position_dodge(width = 0.8)) + 
    facet_wrap(~ data_channel) + 
    coord_cartesian(ylim = c(-0.1, 0.1)) + 
@@ -224,8 +224,6 @@ The second graph examines the relationship between the day an article is publish
      y = "Article Body Length (log transformed)", 
      fill = "Virality"
    )
- 
- grid.arrange(interactData, interactContent, ncol = 2)
  
  (interactData | interactContent) +
   plot_layout(guides = "collect") +
@@ -483,9 +481,8 @@ The final model we fit was:
 
 $$
 \begin{aligned}
-\log\left( \frac{\pi}{1-\pi} \right) =\ & \beta_0 + \beta_1\ \text{kw avg avg} + \beta_2\ \log(\text{n tokens content} + 10^{-4}) + \beta_3\ \text{global subjectivity} + \beta_4\ \text{title sentiment polarity} \\
-& + \left( \sum_{i=1}^{4} \beta_{4+i}\ \mathbf{1}\{\text{data channel} = \text{level}_i\} \right) \\
-& + \left( \sum_{j=1}^{6} \beta_{8+j}\ \mathbf{1}\{\text{day published} = \text{level}_j\} \right) \\
+\log\left( \frac{\pi}{1-\pi} \right) =\ & \beta_0 + \beta_1\ \text{kw avg avg} + \beta_2\ \log(\text{n tokens content} + 10^{-4}) + \beta_3\ \text{global subjectivity} \\ & + \beta_4\ \text{title sentiment polarity} \\
+& + \left( \sum_{i=1}^{4} \beta_{4+i}\ \mathbf{1}\{\text{data channel} = \text{level}_i\} \right)  + \left( \sum_{j=1}^{6} \beta_{8+j}\ \mathbf{1}\{\text{day published} = \text{level}_j\} \right) \\
 & + \left( \sum_{i=1}^{4} \beta_{14+i}\ \log(\text{n tokens content} + 10^{-4})\ \mathbf{1}\{\text{data channel} = \text{level}_i\} \right) \\
 & + \left( \sum_{i=1}^{4} \beta_{18+i}\ \text{global subjectivity}\ \mathbf{1}\{\text{data channel} = \text{level}_i\} \right)
 \end{aligned}
@@ -561,7 +558,7 @@ Obiedat, R. (2020). Predicting the popularity of online news using classificatio
 
 ```{r}
 #| label: kw-avg-visual 
-#| fig-cap: "Figure 1. Average Keyword Distribution" 
+#| fig-cap: "Figure 1: Average Keyword Distribution" 
 
 ggplot(newsdf, aes(x = kw_avg_avg)) +
   geom_histogram(binwidth = 500, fill = "blue", color = "black", alpha = 0.7) +
@@ -574,7 +571,7 @@ ggplot(newsdf, aes(x = kw_avg_avg)) +
 
 ```{r}
 #| label: initial-linear-reg 
-#| fig-cap: "Figure 2. Initial MLR Model"
+#| fig-cap: "Figure 2: Initial MLR Model"
 
 mlr_model <- lm(log(shares) ~ kw_avg_avg + n_tokens_content + 
                data_channel + day_published + global_subjectivity +
@@ -587,7 +584,7 @@ mlr_model <- lm(log(shares) ~ kw_avg_avg + n_tokens_content +
 
 ```{r}
 #| label: MLR-residual-plot 
-#| fig-cap: "Figure 3. MLR Residual Plot" 
+#| fig-cap: "Figure 3: MLR Residual Plot" 
 
 plot(mlr_model, which = c(1), 
       main = "Residuals vs Fitted Values for MLR Model",
