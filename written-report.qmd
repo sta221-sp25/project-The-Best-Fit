@@ -103,7 +103,7 @@ p6 <- ggplot(newsdf, aes(x = log(n_tokens_content))) +
 grid.arrange(p5, p6, ncol = 2)
 ```
 
-`n_tokens_content` displayed a heavily right-skewed distributions that warranted log transformations. To correct for this skewness and reduce the influence of extreme values, we log-transformed both variables. Post-transformation, the distributions became more symmetric and centered, better aligning with modeling assumptions.
+`n_tokens_content` displayed a heavily right-skewed distributions that warranted log transformations. To correct for this skewness and reduce the influence of extreme values, we log-transformed it, resulting in a more centered and symmetric distribution. better aligning with modeling assumptions.
 
 [**Bivariate EDA**]{.underline}
 
@@ -289,13 +289,13 @@ In contrast, the plot of overall subjectivity indicated a slight linear positive
 
 ### **Methodology**
 
-While we initially fitted a linear regression model, using log(shares) as our response variable (re: fig 2), we found that it violated the linear regression assumption of constant variance (re: fig 3). Thus, based on our initial EDA and empirical logit visualization, we selected data channel, day published, article subjectivity, title sentiment polarity, average keyword popularity, and (log) article content length to fit an initial logistic model instead, shown below:
+While we initially fitted a linear regression model, using log(shares) as our response variable (re: fig 2, appendix), we found that it violated the linear regression assumption of constant variance (re: fig 3, appendix). Thus, based on our initial EDA and empirical logit visualization, we selected data channel, day published, article subjectivity, title sentiment polarity, average keyword popularity, and (log) article content length to fit an initial logistic model instead, shown below:
 
 $$
 \begin{aligned}
 \log\left( \frac{\pi}{1-\pi} \right) =\ & \beta_0 + \beta_1 \text{kw avg avg} + \beta_2 \log(\text{n tokens content} + 10^{-4}) + \beta_3 \text{global subjectivity}\\ & + \beta_4 \text{title sentiment polarity} \\& + \left( \sum_{i=1}^{4} \beta_{4+i}\ \mathbf{1}\{\text{data channel} = \text{level}_i\} \right) \\& + \left( \sum_{j=1}^{6} \beta_{8+j}\ \mathbf{1}\{\text{day published} = \text{level}_j\} \right)\end{aligned}
 $$
-All the predictors in our initialky fit model possess significant p-values (p\<0.05) and most predictors have relatively high magnitude z-statistics, indicating that all variables in the model have statistically significant relationships with the likelihood of content going viral (re: fig 4). 
+All the predictors in our initialky fit model possess significant p-values (p\<0.05) and most predictors have relatively high magnitude z-statistics, indicating that all variables in the model have statistically significant relationships with the likelihood of content going viral (re: fig 4, appendix). 
 
 #### Coefficient Analysis
 
@@ -469,7 +469,7 @@ grid.arrange(plot_null, plot_interact,
 
 From the ROC curves, we can see that 1) Both models have an ROC curve above the random threshold, approaching the top left corner, indicating some predictive power in classifying an article and 2) The Interaction Model (AUC = 0.6968) demonstrates marginally better predictive performance than the Initial Model (AUC = 0.6915), confirming our belief that the interaction effects are meaningful predictors. 3) Based on the curve, the optimal threshold for our model should target sensitivity \~ 0.65.
 
-Selecting the point closest to the ROC curve to sensitivity 0.65 yields a threshold of approximately 0.493, to be used when evaluating the final model (re: fig 5).
+Selecting the point closest to the ROC curve to sensitivity 0.65 yields a threshold of approximately 0.493, to be used when evaluating the final model (re: fig 5, appendix).
 
 #### Results
 
@@ -512,7 +512,7 @@ conf_matrix_int <- news_eval |>
 autoplot(conf_matrix_int, type = "heatmap")
 ```
 
-When evaluating our final model, we see it has an AUC of $\sim 0.697$, an accuracy of $\sim 64.7$, specificity of $\sim 64.3$, and sensitivity of $\sim 65.0$ (re: fig 6). If we consider the misclassification rate of only $\sim 35.3$, evaluation suggests that our model is moderately well-fit for the data. This precision means that $\sim 65.3$ of articles predicted to be viral were correctly classified, indicating that the model performs substantially better than random chance.
+When evaluating our final model, we see it has an AUC of $\sim 0.697$, an accuracy of $\sim 64.7$%, specificity of $\sim 64.3$%, and sensitivity of $\sim 65.0$% (re: fig 6). If we consider the misclassification rate of only $\sim 35.3$%, evaluation suggests that our model is moderately well-fit for the data. This precision means that $\sim 65.3$% of articles predicted to be viral were correctly classified, indicating that the model performs substantially better than random chance.
 
 If we assess the assumptions of logistic regression underlying our model, we see approximately linear relationships randomly dispersed around the trend line. Notably, vertical scatter of points around the trend line for subjectivity and title polarity presents a high degree of noise that might be impacting model performance.
 
