@@ -323,7 +323,7 @@ ggplot(data = model_odds_ratios, aes(x = term, y = estimate)) +
   coord_flip()
 ```
 
-From this initial visualization, most of the 95% confidence intervals for our predictor coefficients did not include 1, suggesting that the majority of our predictors significantly contributed to the model fit. While a couple predictors (such as day_published_Thursday and log(n_tokens_content) were close to 1, we kept them in the model due to the overall significance of the categorical variable (ex. day_published) or their role in potential interaction effects.
+From this initial visualization, most of the 95% confidence intervals for our predictor coefficients did not include 1, suggesting that the majority of our predictors significantly contributed to the model fit. While a couple predictors (such as day_published_Thursday, kw_avg_avg, and log(n_tokens_content + 0.0001) were close to 1, we kept them in the model due to the overall significance of the categorical variable (ex. day_published) or their role in potential interaction effects.
 
 #### Interaction Effects
 
