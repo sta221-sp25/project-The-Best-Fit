@@ -1,3 +1,3 @@
-# The New Media- Predicting Article Virality on Social Media From Article Attributes
+# Characterizing and Predicting Article Virality Based off of Metadata and Article Attributes
 by The Best Fit
 
