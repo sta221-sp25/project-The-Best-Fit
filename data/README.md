@@ -8,6 +8,8 @@ The data dictionary for your data file(s) using the following format.
 
 ## Name of data file
 
+OnlineNewsPopularity Link: https://www.kaggle.com/datasets/deepakshende/onlinenewspopularity
+
 ## Online News Popularity Dataset
 
 | Variable | Description |
