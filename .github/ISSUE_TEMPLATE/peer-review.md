@@ -50,3 +50,47 @@ The only real issue we see is that sometimes the titles run off of graphs, but i
 
 ### (Optional) Any further comments or feedback?
 N/A great job!
+
+
+### Team doing the review: The BEST Fit
+The team members that participated in this review are
+
+Olivia Encarnacion - @Oencarnacion4
+
+Allison Yang - @allison-y-yang
+
+Leo Yang - @Leonard271828
+
+Phillip Lin - @256thFission
+
+### Describe the goal of the project.
+The goal of the project is to understand what are the most significant factors that influence a player’s likelihood of being voted into the Pro Football Hall of Fame. Their motivation is to help identify patterns of underrepresentation, such as whether certain positions are overlooked. This project also aims to provide insights into the career trajectories of current NFL players, and their likelihood of receiving this honor, especially considering that the selection is a subjective process.
+
+### Describe the data set used in the project. What are the observations in the data? What is the source of the data? How were the data originally collected?
+The data set is from Kaggle (from the user @DubraDave) and was collected through the Python package, nfl_data_py. Each observation is an individual NFL draft pick from 1990 to 2022. The data set contains in-game statistics, NFL draft information, career awards, etc.
+
+### Consider the exploratory data analysis (EDA). Describe one aspect of the EDA that is effective in helping you understand the data. Provide constructive feedback on how the team might improve the EDA.
+The methods used to adjust the proportion of HOF players in the dataset make sense, and the career length box plot is an excellent visualization of the difference between the two classes.
+
+One area that the EDA might be improved is in the relationship between position and Hall of fame, since there is no legend indicating what the abbreviations indicated and the spacing is a bit odd/uneven. Perhaps place the labels diagonally with a legend below.
+Additionally, some of the abbreviations like “Pass TDS” should be defined with the full phrase at least once.
+
+### Describe the statistical methods, analysis approach, and discussion of model assumptions, diagnostics, model fit.
+The group’s approach was to first fit a logistic regression model with all potential “neutral” predictor variables that did not depend on a player’s position. From this initial model, they looked at VIF scores and dealt with multicollinearity concerns by transforming/removing predictors. The group also performed drop-in deviance tests to check whether certain predictors were helpful or not in their final model.
+
+To also evaluate model performance, they looked at AIC and BIC of different models (3 total) and picked the most effective one. The analysis is very comprehensive, as they tested several different models before picking their final one, and used a variety of diagnostic tools.
+
+### Provide constructive feedback on how the team might improve their analysis. Make sure your feedback includes at least one comment on the statistical modeling aspect of the project, but also feel free to comment on aspects beyond the modeling.
+One area where the analysis could be improved is to clearly indicate which model represents model 2 and model 3, as when we were reading the analysis, we became a bit lost in that aspect. In addition, it might be beneficial to indicate more statistical reasoning as to why “games” was removed over “seasons_started”, rather than just claiming that as an assumption. Perhaps “games” could be removed in one model and “seasons_started” could be removed in another, and the two models could be then compared.
+
+### Provide constructive feedback on the interpretations and initial conclusion. What is most effective in the presentation of the results? What additional detail can the team provide to make the results and conclusions easier for the reader to understand?
+The interpretation of the confusion matrix & ROC curve are good, and properly acknowledge the limits of oversampling. Perhaps the graphs for the confusion matrix could use additional labeling and note what model is being used. Additionally, consider interpreting the “No-information-Rate”, since having an NIR of 0.83% suggests the model is guessing the base case in the vast majority of the time.
+
+### What aspect of this project are you most interested in and think would be interesting to highlight in the written report?
+We were really interested in how seemingly well-fit the logistic regression model chosen was, but the group also addressed how this could be a sign of over-fitting. We would love to see how the group addresses this issue. In addition to their findings, we’re looking forward to learning about how different factors out of players' controls could influence their chances of entering the Pro Football Hall of Fame.
+
+### Provide constructive feedback on any issues with file and/or code organization
+For some of the graphs, the titles aren’t legible/run off the page, and so just ensuring that everything is clean and easy to read would be great. Also, in the methodology section, there are stats about each model but not labels as to what those stats mean, so including that would be helpful.
+
+### (Optional) Any further comments or feedback?
+N/A - really well done!
