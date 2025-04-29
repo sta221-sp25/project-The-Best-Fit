@@ -1,3 +1,4 @@
 # Characterizing and Predicting Article Virality Based off of Metadata and Article Attributes
 by The Best Fit
 
+Our goal is to find out what factors could potentially influence the likelihood that an article goes viral (1400+ shares). The key predictors that were investigated were subject area, day published, subjectivity, article length, title sentiment, and average shares of keywords. Eventually, we found out that keyword popularity, article subjectivity, title sentiment, day of publication, and article category were significant predictors of virality, with subjective articles, articles published on weekends, and articles in social media especially standing out. Ultimately, our findings suggest that these factors all contribute to an article's virality, though they are certainly not the sole predictors.
